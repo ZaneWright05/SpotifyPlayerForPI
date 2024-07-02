@@ -1,0 +1,5 @@
+play <song name> - plays the song by name
+queue <song name> - add a song to player queue
+current - return the currently playing song
+
+exit - close the player (piplayer will remain active)
