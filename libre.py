@@ -57,17 +57,22 @@ def skip_current(deviceName = "piplayer"):
 def play_previous(deviceName = "piplayer"):
 	deviceId = get_Device_Id(deviceName)
 	if deviceId:
-		sp.previous_track()
+		sp.previous_track() ## must be called twice as calling once goes back to the start of current
 		sp.previous_track()
 		print("Jumped back to previous song")
 		return_current_song()
 	else:
 		print("No device found")
 		
-#def up_Next(deviceName = "piplayer"):
-#	deviceId = get_Device_Id(deviceName)
-#	if deviceId:
-		
+def restart_track(deviceName = "piplayer"):
+	deviceId = get_Device_Id(deviceName)
+	if deviceId:
+		sp.previous_track()
+		print("Song restarted")
+#		return_current_song()
+		resume()
+	else:
+		print("No device found")
 
 def return_current_song(deviceName = "piplayer"):
 	deviceId = get_Device_Id(deviceName)
@@ -82,9 +87,9 @@ def return_current_song(deviceName = "piplayer"):
 			mainArtist = track['artists'][0]['name']
 			currentTime = currentSong['progress_ms']
 			if currentSong['is_playing']:
-				print(f"{name} by {mainArtist} is currently playing: ({ms_to_minutes(currentTime)}/{ms_to_minutes(length)})")
+				print(f"{name} by {mainArtist} is playing: ({ms_to_minutes(currentTime)}/{ms_to_minutes(length)})")
 			else:
-				print(f"{name} by {mainArtist} is currently paused: ({ms_to_minutes(currentTime)}/{ms_to_minutes(length)})")
+				print(f"{name} by {mainArtist} is paused: ({ms_to_minutes(currentTime)}/{ms_to_minutes(length)})")
 		else:
 			print("No song currently playing")
 	else:
@@ -154,7 +159,19 @@ def resume(deviceName = "piplayer"):
 	else:
 		print("No device found")
 		
-		
+def up_Next(deviceName = "piplayer"):
+	deviceId = get_Device_Id(deviceName)
+	if deviceId:
+		queue = sp.queue()
+		count = 0
+		for track in queue['queue']:
+			if count == 10: # next 10 playing shown
+				break
+			else:
+				name = track['name']
+				artist = track['artists'][0]['name']
+				print(f"{name} by {artist}")
+				count = count + 1
 
 def list_commands():
 	try:
@@ -168,10 +185,16 @@ def list_commands():
 def input_handler(command):
 	if command.startswith("play"):
 		trackName = command.split("play",1)[1] # get song from the play command
-		play_track_by_name(trackName)
+		if trackName == "":
+			print("Please enter a song to play")
+		else:
+			play_track_by_name(trackName)
 	elif command.startswith("queue"):
 		trackName = command.split("queue",1)[1]
-		queue_song(trackName)
+		if trackName == "":
+			print("Please enter a song to queue")
+		else:
+			queue_song(trackName)
 	elif command == "help":
 		list_commands()
 	elif command == "current":
@@ -184,6 +207,10 @@ def input_handler(command):
 		skip_current()
 	elif command == "previous":
 		play_previous()
+	elif command == "restart":
+		restart_track()
+	elif command == "upcoming":
+		up_Next()
 	else:
 		print(f"Command '{command}' is unknown, type 'help' to list all available commands")
 		
