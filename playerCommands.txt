@@ -1,5 +1,10 @@
 play <song name> - plays the song by name
 queue <song name> - add a song to player queue
 current - return the currently playing song
-
+resume - play current song, if paused
+pause - pause current song, if playing
+skip - skip to next song in queue, if nothing is queued player will pause
+previous - play previous song
+restart - play song from the start
+seek - select a where in the current song to jump to
 exit - close the player (piplayer will remain active)

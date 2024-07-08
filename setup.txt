@@ -1,0 +1,6 @@
+set up librespot 
+librespot --name "piplayer" --backend alsa --bitrate 320
+
+bash for running file
+source venv/bin/activate
+pip install spotipy

@@ -1,5 +1,7 @@
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
+import threading
+import time
 
 CLIENT_ID = '6002fe2429a3402d8aa9d80b9ab42d26'
 CLIENT_SECRET = '888c936f1ff74230a1e2a854e138d0c8'
@@ -12,7 +14,7 @@ sp_oauth = SpotifyOAuth(client_id=CLIENT_ID,
 						redirect_uri=REDIRECT_URI,
 						scope=SCOPE)
 
-tokenInfo = sp_oauth.get_access_token()
+tokenInfo = sp_oauth.get_cached_token()
 accessToken = tokenInfo['access_token']
 sp = spotipy.Spotify(auth=accessToken)
 
@@ -32,9 +34,9 @@ def play_track_from_URI(trackUri, deviceName = "piplayer"):
 		print(f"Device {deviceName} not found")
 		
 def play_track_by_name(track_name, deviceName = "piplayer"):
-	returnedTracks = sp.search(q=track_name, type='track', limit=1)
+	returnedTracks = sp.search(q=track_name, type='track', limit=10)
 	if returnedTracks['tracks']['items']:
-		track = returnedTracks['tracks']['items'][0]
+		track = select_Track(returnedTracks['tracks']['items'])
 		uri = track['uri']
 		name = track['name']
 		mainArtist = track['artists'][0]['name']
@@ -42,28 +44,52 @@ def play_track_by_name(track_name, deviceName = "piplayer"):
 		print(f"{name} by {mainArtist}")
 	else:
 		print(f"No tracks found for {track_name}")
-
+		
+def skip_current(deviceName = "piplayer"):
+	deviceId = get_Device_Id(deviceName)
+	if deviceId:
+		sp.next_track()
+		print("Current track skipped")
+		return_current_song()
+	else:
+		print("No device found")
+	
 def return_current_song(deviceName = "piplayer"):
 	deviceId = get_Device_Id(deviceName)
 	if deviceId:
 		currentSong = sp.current_playback()
-		if currentSong and currentSong['is_playing']:
+		if currentSong:
+			# and currentSong['is_playing']:
 			track = currentSong['item']
 			uri = track['uri']
 			name = track['name']
+			length = track['duration_ms']
 			mainArtist = track['artists'][0]['name']
-			print(f"{name} by {mainArtist} is currently playing")
+			currentTime = currentSong['progress_ms']
+			if currentSong['is_playing']:
+				print(f"{name} by {mainArtist} is currently playing: ({ms_to_minutes(currentTime)}/{ms_to_minutes(length)})")
+			else:
+				print(f"{name} by {mainArtist} is currently paused: ({ms_to_minutes(currentTime)}/{ms_to_minutes(length)})")
 		else:
 			print("No song currently playing")
 	else:
 		print("No device found")
 
+def ms_to_minutes(time):
+	totalSeconds = time / 1000
+	minutes = int(totalSeconds // 60)
+	seconds = int(totalSeconds % 60)
+	if seconds < 10:
+		seconds =  "0" + str (seconds)
+	return f"{minutes}:{seconds}"
+	
+
 def queue_song(trackName, deviceName = "piplayer"):
 	deviceId = get_Device_Id(deviceName)
 	if deviceId:
-		returnedTracks = sp.search(q=trackName, type='track', limit=1)
+		returnedTracks = sp.search(q=trackName, type='track', limit=10)
 		if returnedTracks['tracks']['items']: # find and queue song
-			track = returnedTracks['tracks']['items'][0]
+			track = select_Track(returnedTracks['tracks']['items'])
 			uri = track['uri']
 			name = track['name']
 			mainArtist = track['artists'][0]['name']
@@ -74,11 +100,52 @@ def queue_song(trackName, deviceName = "piplayer"):
 	else:
 		print("No device found")
 
+def select_Track(trackList):
+	count = 1
+	for track in trackList:
+		print(f"{count}. {track['name']} by {track['artists'][0]['name']}")
+		count = count + 1
+	response =  input("Please enter the desired song number...")
+	try:
+		intValue = int (response)
+		if intValue < count:
+			return trackList[intValue - 1]
+		else:
+			print("Invalid input (too large)")
+			print("Last song picked...")
+			return trackList[count - 2]
+	except ValueError:
+		print("Invalid input (not a number)")
+		print("First song picked...")
+		return trackList[0]
+
+def pause(deviceName = "piplayer"):
+	deviceId = get_Device_Id(deviceName)
+	if deviceId:
+		sp.pause_playback(device_id = deviceId)
+		track = sp.current_playback()['item']
+		name = track['name']
+		print(f"{name} paused...")
+	else:
+		print("No device found")
+		
+def resume(deviceName = "piplayer"):
+	deviceId = get_Device_Id(deviceName)
+	if deviceId:
+		sp.start_playback(device_id = deviceId)
+		track = sp.current_playback()['item']
+		name = track['name']
+		print(f"{name} playing...")
+	else:
+		print("No device found")
+		
+		
+
 def list_commands():
 	try:
 		with open("playerCommands.txt", "r") as file:
 			commands = file.read()
-			print("Available commands:\n")
+			print("\nAvailable commands:")
 			print(commands)
 	except FileNotFoundError:
 		print("Command file not found")
@@ -94,8 +161,15 @@ def input_handler(command):
 		list_commands()
 	elif command == "current":
 		return_current_song()
+	elif command == "resume":
+		resume()
+	elif command == "pause":
+		pause()
+	elif command == "skip":
+		skip_current()
 	else:
-		print(f"Command {command} is unknown, type 'help' to list all available commands")
+		print(f"Command '{command}' is unknown, type 'help' to list all available commands")
+		
 		
 if __name__ == "__main__":
 	while True:
