@@ -6,6 +6,6 @@ pause - pause current song, if playing
 skip - skip to next song in queue, if nothing is queued player will pause
 previous - play previous song
 restart - play song from the start
-seek - select a where in the current song to jump to
+seek - select where in the current song to jump to
 upcoming - displays up to next 10 songs in queue
 exit - close the player (piplayer will remain active)

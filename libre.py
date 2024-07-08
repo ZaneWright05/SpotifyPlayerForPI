@@ -1,7 +1,7 @@
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
 import threading
-import time
+from time import sleep
 
 CLIENT_ID = '6002fe2429a3402d8aa9d80b9ab42d26'
 CLIENT_SECRET = '888c936f1ff74230a1e2a854e138d0c8'
@@ -50,14 +50,16 @@ def skip_current(deviceName = "piplayer"):
 	if deviceId:
 		sp.next_track()
 		print("Current track skipped")
-		return_current_song()
+		#return_current_song()
 	else:	
 		print("No device found")
 
 def play_previous(deviceName = "piplayer"):
 	deviceId = get_Device_Id(deviceName)
 	if deviceId:
-		sp.previous_track() ## must be called twice as calling once goes back to the start of current
+		currentSong = sp.current_playback()
+		if currentSong['progress_ms'] > 0:
+			sp.previous_track() ## must be called twice as calling once goes back to the start of current
 		sp.previous_track()
 		print("Jumped back to previous song")
 		return_current_song()
@@ -67,7 +69,7 @@ def play_previous(deviceName = "piplayer"):
 def restart_track(deviceName = "piplayer"):
 	deviceId = get_Device_Id(deviceName)
 	if deviceId:
-		sp.previous_track()
+		sp.seek_track(0)
 		print("Song restarted")
 #		return_current_song()
 		resume()
@@ -173,6 +175,41 @@ def up_Next(deviceName = "piplayer"):
 				print(f"{name} by {artist}")
 				count = count + 1
 
+def seek(deviceName = "piplayer"):
+	deviceId = get_Device_Id(deviceName)
+	if deviceId:
+		currentSong = sp.current_playback()
+		flag = False # flag to play song again if the system has paused it
+		if currentSong:
+			if currentSong['is_playing']:
+				pause()
+				flag = True
+			track = currentSong['item']
+			length = track['duration_ms']
+			position = input(f"Enter position in format mm:ss, song duration ({ms_to_minutes(length)}): ")
+			try:
+				minute = int (position.split(':',1)[0])
+				second = abs(int (position.split(':',1)[1]))
+				timeInMs = ((minute * 60) + second) * 1000
+				if timeInMs >= length:
+					print("Cannot seek to end of song, next track will be played instead")
+					skip_current()
+				elif timeInMs < 0:
+					print("Cannot seek to a negative value, restarting song")
+					restart_track()
+				else:
+					sp.seek_track(timeInMs)
+				if flag == True:
+					resume() 
+				else: 
+					sleep(0.5)
+					return_current_song()
+			except (IndexError, ValueError):
+				print("Incorrect format or invalid input, restarting song")
+				restart_track()
+	else:
+		print("No device found")
+	
 def list_commands():
 	try:
 		with open("playerCommands.txt", "r") as file:
@@ -211,13 +248,15 @@ def input_handler(command):
 		restart_track()
 	elif command == "upcoming":
 		up_Next()
+	elif command == "seek":
+		seek()
 	else:
 		print(f"Command '{command}' is unknown, type 'help' to list all available commands")
 		
 		
 if __name__ == "__main__":
 	while True:
-		command = input("Player waiting... ")
+		command = input("Player waiting... ").strip()
 		if command == "exit":
 			break
 		input_handler(command)
