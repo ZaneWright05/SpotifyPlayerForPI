@@ -51,9 +51,24 @@ def skip_current(deviceName = "piplayer"):
 		sp.next_track()
 		print("Current track skipped")
 		return_current_song()
+	else:	
+		print("No device found")
+
+def play_previous(deviceName = "piplayer"):
+	deviceId = get_Device_Id(deviceName)
+	if deviceId:
+		sp.previous_track()
+		sp.previous_track()
+		print("Jumped back to previous song")
+		return_current_song()
 	else:
 		print("No device found")
-	
+		
+#def up_Next(deviceName = "piplayer"):
+#	deviceId = get_Device_Id(deviceName)
+#	if deviceId:
+		
+
 def return_current_song(deviceName = "piplayer"):
 	deviceId = get_Device_Id(deviceName)
 	if deviceId:
@@ -167,6 +182,8 @@ def input_handler(command):
 		pause()
 	elif command == "skip":
 		skip_current()
+	elif command == "previous":
+		play_previous()
 	else:
 		print(f"Command '{command}' is unknown, type 'help' to list all available commands")
 		
