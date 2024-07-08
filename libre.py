@@ -166,14 +166,17 @@ def up_Next(deviceName = "piplayer"):
 	if deviceId:
 		queue = sp.queue()
 		count = 0
-		for track in queue['queue']:
-			if count == 10: # next 10 playing shown
-				break
-			else:
-				name = track['name']
-				artist = track['artists'][0]['name']
-				print(f"{name} by {artist}")
-				count = count + 1
+		if empty_Queue() == True:
+			print("Queue is empty")
+		else:
+			for track in queue['queue']:
+				if count == 10: # next 10 playing shown
+					break
+				else:
+					name = track['name']
+					artist = track['artists'][0]['name']
+					print(f"{name} by {artist}")
+					count = count + 1
 
 def seek(deviceName = "piplayer"):
 	deviceId = get_Device_Id(deviceName)
@@ -219,6 +222,42 @@ def list_commands():
 	except FileNotFoundError:
 		print("Command file not found")
 
+def empty_Queue(deviceName = "piplayer"):
+	deviceId = get_Device_Id(deviceName)
+	if deviceId:
+		queue = sp.queue()
+		if len(queue['queue']) == 0:
+			return True
+			
+		currentId = None
+		previousId = None
+		for track in queue['queue']:
+			currentId = track['id']
+			#print(f"current: {currentId}")
+			#print(f"previous: {previousId}")
+			if previousId is not None and  currentId != previousId: # not the same
+				return False # queue not empty
+			previousId = currentId
+		return True
+	else:
+		print("No device found")
+		return False
+
+def track_Listener(): # look for when a song is ending/changed
+	lastTrackId = None
+	while True:
+		currentSong = sp.current_playback()
+		if currentSong:
+			track = currentSong['item']
+			trackId = track['id']
+			if trackId != lastTrackId: # update when song changed
+				return_current_song()
+				print("Player waiting...")
+				lastTrackId = trackId
+			#if empty_Queue():
+			#	print("nothing in queue")
+		sleep(1)
+			
 def input_handler(command):
 	if command.startswith("play"):
 		trackName = command.split("play",1)[1] # get song from the play command
@@ -255,6 +294,9 @@ def input_handler(command):
 		
 		
 if __name__ == "__main__":
+	listener = threading.Thread(target=track_Listener, daemon = True)
+	listener.start()
+	
 	while True:
 		command = input("Player waiting... ").strip()
 		if command == "exit":
