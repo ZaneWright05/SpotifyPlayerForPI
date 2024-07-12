@@ -296,15 +296,14 @@ def create_Auto_Queue(deviceName = "piplayer"):
 			trackId.append(track['id'])
 			count = 0
 			for artist in track['artists']:
-				if count < 5:
-					artistInfo = sp.artist(artist['id'])
+				if count < 4:
 					artistArr.append(artist['id'])
 					count = count + 1
-					for genre in artistInfo['genres']:
-						if count < 5:
-							if genre not in genreArr:
-								genreArr.append(genre)	
-								count = count + 1	
+				for genre in (sp.artist(artistArr[0]))['genres']:
+					if count < 4:
+						if genre not in genreArr:
+							genreArr.append(genre)	
+							count = count + 1	
 				recommendations = sp.recommendations(seed_track=trackId, seed_artists=artistArr, seed_genres=genreArr, limit=10)
 				for track in recommendations['tracks']:
 					#print(track)
