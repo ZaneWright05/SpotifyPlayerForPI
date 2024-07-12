@@ -8,4 +8,5 @@ previous - play previous song
 restart - play song from the start
 seek - select where in the current song to jump to
 upcoming - displays up to next 10 songs in queue
+clear - clear the queue
 exit - close the player (piplayer will remain active)

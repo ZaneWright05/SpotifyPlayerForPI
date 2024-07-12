@@ -2,6 +2,7 @@ import spotipy
 from spotipy.oauth2 import SpotifyOAuth
 import threading
 from time import sleep
+import time
 
 CLIENT_ID = '6002fe2429a3402d8aa9d80b9ab42d26'
 CLIENT_SECRET = '888c936f1ff74230a1e2a854e138d0c8'
@@ -16,7 +17,27 @@ sp_oauth = SpotifyOAuth(client_id=CLIENT_ID,
 
 tokenInfo = sp_oauth.get_cached_token()
 accessToken = tokenInfo['access_token']
+refreshToken = tokenInfo['refresh_token']
+expiryTime = tokenInfo['expires_at']
+
+
+
+global autoQueue, sp, pauseEvent
+
+pauseEvent = threading.Event()
+autoQueue = False # when auto queue is gen this is true
+# it will allow the whole recommended queue to be cleared by adding a new song to queue
 sp = spotipy.Spotify(auth=accessToken)
+
+def refresh_Access(): # called to refresh the token
+	global accessToken, refreshToken, expiryTime, sp_oauth, sp
+	
+	if time.time() > expiryTime:
+		tokenInfo = sp_oauth.get_cached_token()
+		accessToken = tokenInfo['access_token']
+		refreshToken = tokenInfo['refresh_token']
+		expiryTime = tokenInfo['expires_at']
+		sp = spotipy.Spotify(auth=accessToken)
 
 def get_Device_Id(deviceName = "piplayer"):
 	devices = sp.devices()
@@ -59,7 +80,7 @@ def play_previous(deviceName = "piplayer"):
 	if deviceId:
 		currentSong = sp.current_playback()
 		if currentSong['progress_ms'] > 0:
-			sp.previous_track() ## must be called twice as calling once goes back to the start of current
+			sp.previous_track() # must be called twice as calling once goes back to the start of current
 		sp.previous_track()
 		print("Jumped back to previous song")
 		return_current_song()
@@ -107,8 +128,13 @@ def ms_to_minutes(time):
 	
 
 def queue_song(trackName, deviceName = "piplayer"):
+	global autoQueue
+	pauseEvent.clear()
 	deviceId = get_Device_Id(deviceName)
 	if deviceId:
+		if autoQueue: # user choosing a song to queue clears recommended
+			autoQueue = False
+			clear_Queue() 
 		returnedTracks = sp.search(q=trackName, type='track', limit=10)
 		if returnedTracks['tracks']['items']: # find and queue song
 			track = select_Track(returnedTracks['tracks']['items'])
@@ -121,6 +147,8 @@ def queue_song(trackName, deviceName = "piplayer"):
 			print(f"No tracks found for {track_name}")
 	else:
 		print("No device found")
+	sleep(0.5)
+	pauseEvent.set()
 
 def select_Track(trackList):
 	count = 1
@@ -243,22 +271,66 @@ def empty_Queue(deviceName = "piplayer"):
 		print("No device found")
 		return False
 
+def clear_Queue(deviceName = "piplayer"): # will be used when the user add something to queue to remove recomendations
+	deviceId = get_Device_Id(deviceName)
+	if deviceId:
+		while empty_Queue() == False:
+			sp.next_track()
+			#sleep(0.05) # avoid overloading api
+		print("Queue empty")
+		pause()
+	else:
+		print("No device found")
+		
+def create_Auto_Queue(deviceName = "piplayer"):
+	global autoQueue
+	autoQueue = True
+	deviceId = get_Device_Id(deviceName)
+	if deviceId:
+		artistArr = []
+		genreArr = []
+		trackId =[]
+		currentSong = sp.current_playback()
+		if currentSong:
+			track = currentSong['item']
+			trackId.append(track['id'])
+			count = 0
+			for artist in track['artists']:
+				if count < 5:
+					artistInfo = sp.artist(artist['id'])
+					artistArr.append(artist['id'])
+					count = count + 1
+					for genre in artistInfo['genres']:
+						if count < 5:
+							if genre not in genreArr:
+								genreArr.append(genre)	
+								count = count + 1	
+				recommendations = sp.recommendations(seed_track=trackId, seed_artists=artistArr, seed_genres=genreArr, limit=10)
+				for track in recommendations['tracks']:
+					#print(track)
+					sp.add_to_queue(track['uri'], deviceId)
+	else:
+		print("No device found")
+
 def track_Listener(): # look for when a song is ending/changed
 	lastTrackId = None
 	while True:
+		pauseEvent.wait()
 		currentSong = sp.current_playback()
 		if currentSong:
 			track = currentSong['item']
 			trackId = track['id']
 			if trackId != lastTrackId: # update when song changed
 				return_current_song()
-				print("Player waiting...")
+				print(f"Player waiting... ")
 				lastTrackId = trackId
-			#if empty_Queue():
+			if empty_Queue():
+				create_Auto_Queue()
 			#	print("nothing in queue")
 		sleep(1)
 			
 def input_handler(command):
+	refresh_Access() # will refresh access if necessary
 	if command.startswith("play"):
 		trackName = command.split("play",1)[1] # get song from the play command
 		if trackName == "":
@@ -289,11 +361,14 @@ def input_handler(command):
 		up_Next()
 	elif command == "seek":
 		seek()
+	elif command == "clear":
+		clear_Queue()
 	else:
 		print(f"Command '{command}' is unknown, type 'help' to list all available commands")
 		
 		
 if __name__ == "__main__":
+	pauseEvent.set()
 	listener = threading.Thread(target=track_Listener, daemon = True)
 	listener.start()
 	
