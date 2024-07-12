@@ -282,6 +282,25 @@ def clear_Queue(deviceName = "piplayer"): # will be used when the user add somet
 	else:
 		print("No device found")
 		
+def set_Vol(level, deviceName = "piplayer"):
+	deviceId = get_Device_Id(deviceName)
+	if deviceId:
+		try:
+			level = int (level)
+			if level > 100:
+				sp.volume(100)
+				print("Out of range, volume set to 100")
+			elif level < 0:
+				sp.volume(0)
+				print("Out of range, volume set to 0")
+			else:
+				print(f"Volume set to {level}")
+				sp.volume(level)
+		except ValueError:
+			print("A number must be entered to change volume")
+	else:
+		print("No device found")
+		
 def create_Auto_Queue(deviceName = "piplayer"):
 	global autoQueue
 	autoQueue = True
@@ -342,6 +361,12 @@ def input_handler(command):
 			print("Please enter a song to queue")
 		else:
 			queue_song(trackName)
+	elif command.startswith("volume"):
+		volume = command.split("volume",1)[1]
+		if volume == "":
+			print("Please enter a value to set the volume to")
+		else:
+			set_Vol(volume)
 	elif command == "help":
 		list_commands()
 	elif command == "current":
