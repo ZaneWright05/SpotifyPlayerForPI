@@ -80,6 +80,13 @@ class piplayerCore:
 			print(f"Volume set to {level}")
 		else:
 			print("No device found")
+	
+	def seek(self, position, deviceName = "piplayer"):
+		deviceId = self.get_device_id(deviceName)
+		if deviceId:
+			self.sp.seek_track(position)
+		else:
+			print("No device found")
 
 	def get_current_state(self, deviceName = "piplayer"):
 		deviceId = self.get_device_id(deviceName)
@@ -92,11 +99,13 @@ class piplayerCore:
 				length = track['duration_ms']
 				mainArtist = track['artists'][0]['name']
 				currentTime = currentSong['progress_ms']
+				volume = currentSong['device']['volume_percent']
 				return {
 					'playing' : currentSong['is_playing'],
 					'name' : name,
 					'length' : length,
 					'currentTime' : currentTime,
+					'volume' : int(volume)
 				}
 		else:
 			print("No device found")
