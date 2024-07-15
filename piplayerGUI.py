@@ -19,6 +19,9 @@ class piplayerGUI:
 		self.pauseButton = Button(self.root, text="Pause", command=self.pause_track)
 		self.pauseButton.pack()
 		
+		self.volumeSlider = Scale(self.root, from_=0, to=100, orient=HORIZONTAL, command=self.set_volume)
+		self.volumeSlider.pack()
+		
 	def play_track(self):
 		self.player.resume()
 		
@@ -27,7 +30,12 @@ class piplayerGUI:
 		
 	def pause_track(self):
 		self.player.pause()
-
+	
+	def set_volume(self, volume):
+		level = self.volumeSlider.get()
+		print(level)
+		self.player.set_Vol(level)
+		
 if __name__ == "__main__":
 	root = Tk()
 	app = piplayerGUI(root)

@@ -71,3 +71,12 @@ class piplayerCore:
 			print(f"{name} paused...")
 		else:
 			print("No device found")
+			
+	def set_Vol(self, level, deviceName = "piplayer"):
+		deviceId = self.get_device_id(deviceName)
+		if deviceId:
+			level = int (float(level))
+			self.sp.volume(level)
+			print(f"Volume set to {level}")
+		else:
+			print("No device found")
