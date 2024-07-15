@@ -80,3 +80,24 @@ class piplayerCore:
 			print(f"Volume set to {level}")
 		else:
 			print("No device found")
+
+	def get_current_state(self, deviceName = "piplayer"):
+		deviceId = self.get_device_id(deviceName)
+		if deviceId:
+			currentSong = self.sp.current_playback()
+			if currentSong:
+				track = currentSong['item']
+				uri = track['uri']
+				name = track['name']
+				length = track['duration_ms']
+				mainArtist = track['artists'][0]['name']
+				currentTime = currentSong['progress_ms']
+				return {
+					'playing' : currentSong['is_playing'],
+					'name' : name,
+					'length' : length,
+					'currentTime' : currentTime,
+				}
+		else:
+			print("No device found")
+			return None
