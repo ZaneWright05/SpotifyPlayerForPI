@@ -47,6 +47,7 @@ def get_Device_Id(deviceName = "piplayer"):
 	return None
 	
 def play_track_from_URI(trackUri, deviceName = "piplayer"):
+	print(trackUri)
 	deviceId = get_Device_Id(deviceName)
 	if deviceId:
 		sp.start_playback(device_id = deviceId, uris=[trackUri])
