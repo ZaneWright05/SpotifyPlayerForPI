@@ -42,6 +42,7 @@ class piplayerGUI:
 		self.startButton = Button(self.root, text="Start", command=self.start_track)
 		self.startButton.pack(pady=10)
 		
+		# hold play back buttons
 		self.buttonBar = Frame(self.root)
 		self.buttonBar.pack(pady=10)
 		
@@ -83,15 +84,19 @@ class piplayerGUI:
 		self.currentTrack = Label(self.root, text="No track playing")
 		self.currentTrack.pack(pady=10)
 		
-		self.songProgress = ttk.Progressbar(self.root, orient=HORIZONTAL, length=400, mode='determinate')
-		self.songProgress.pack(pady=10)
+		# hold timing bar and labels
+		self.progressBar = Frame(self.root)
+		self.progressBar.pack(pady=10)
+		
+		self.currentLabel = Label(self.progressBar, text="--:--")
+		self.currentLabel.pack(padx=10, side=LEFT)
+		
+		self.songProgress = ttk.Progressbar(self.progressBar, orient=HORIZONTAL, length=400, mode='determinate')
+		self.songProgress.pack(padx=10, side=LEFT)
 		self.songProgress.bind("<ButtonRelease-1>", self.user_seek)
 		
-	def previous_track(self):
-		self.player.resume()
-		
-	def next_track(self):
-		self.player.pause()
+		self.durationLabel = Label(self.progressBar, text="--:--")
+		self.durationLabel.pack(padx=10, side=LEFT)
 
 	def start_track(self):
 		self.player.play_track_from_URI()
@@ -120,7 +125,15 @@ class piplayerGUI:
 			mousePos = event.x # click location
 			newPosition = (mousePos/progWidth) * self.reply['length']
 			self.player.seek(int(newPosition))
-			
+	
+	def ms_to_minutes(self, time):
+		totalSeconds = time / 1000
+		minutes = int(totalSeconds // 60)
+		seconds = int(totalSeconds % 60)
+		if seconds < 10:
+			seconds =  "0" + str (seconds)
+		return f"{minutes}:{seconds}"		
+	
 	def request_status(self):
 		try:
 			self.reply = self.player.get_current_state()
@@ -128,8 +141,10 @@ class piplayerGUI:
 				self.currentTrack.config(text=self.reply['name'])
 				self.songProgress['maximum'] = self.reply['length']
 				self.songProgress['value'] = self.reply['currentTime']
+				self.durationLabel.config(text=self.ms_to_minutes(self.reply['length']))
+				self.currentLabel.config(text=self.ms_to_minutes(self.reply['currentTime']))
 				if not self.volChange.get(): # check to see if the user is changing volume
-					self.volumeSlider.set(self.reply['volume']) # takes volume from api
+					self.volumeSlider.set(self.reply['volume']) # take volume from api
 				if self.reply['playing']:
 					self.playbackButton.config(image=self.pausePhoto)
 				else:
@@ -138,6 +153,9 @@ class piplayerGUI:
 				self.currentTrack.config(text="No track playing")
 				self.songProgress['maximum'] = 0
 				self.songProgress['value'] = 0
+				self.playbackButton.config(image=self.stopPhoto)
+				self.durationLabel.config(text="--:--")
+				self.currentLabel.config(text="--:--")
 		except Exception as e:
 			print(e)
 		self.root.after(self.updateInterval, self.request_status) # call function every second
