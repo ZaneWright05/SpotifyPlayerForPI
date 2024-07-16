@@ -24,6 +24,14 @@ class piplayerGUI:
 		self.stopImage = Image.open(stopPath).resize((50, 50), Image.Resampling.LANCZOS)
 		self.stopPhoto = ImageTk.PhotoImage(self.stopImage)
 		
+		previousPath = os.path.join(scriptDir, 'resources', 'previous.png')
+		self.previousImage = Image.open(previousPath).resize((50, 50), Image.Resampling.LANCZOS)
+		self.previousPhoto = ImageTk.PhotoImage(self.previousImage)
+		
+		nextPath = os.path.join(scriptDir, 'resources', 'next.png')
+		self.nextImage = Image.open(nextPath).resize((50, 50), Image.Resampling.LANCZOS)
+		self.nextPhoto = ImageTk.PhotoImage(self.nextImage)
+		
 		self.create_buttons()
 		self.updateInterval = 500
 		self.volChange = BooleanVar(value=False)
@@ -34,7 +42,20 @@ class piplayerGUI:
 		self.startButton = Button(self.root, text="Start", command=self.start_track)
 		self.startButton.pack(pady=10)
 		
-		self.playbackButton = Button(self.root, image=self.stopPhoto,
+		self.buttonBar = Frame(self.root)
+		self.buttonBar.pack(pady=10)
+		
+		self.previousButton = Button(self.buttonBar, image=self.previousPhoto,
+									command=self.previous,
+									borderwidth=0,
+									highlightthickness=0,
+									relief='flat',
+									bg=self.root.cget('bg'),
+									activebackground=self.root.cget('bg'),
+									activeforeground=self.root.cget('bg'))
+		self.previousButton.pack(padx=10, side=LEFT)
+		
+		self.playbackButton = Button(self.buttonBar, image=self.stopPhoto,
 									command=self.set_playback,
 									borderwidth=0,
 									highlightthickness=0,
@@ -42,8 +63,17 @@ class piplayerGUI:
 									bg=self.root.cget('bg'),
 									activebackground=self.root.cget('bg'),
 									activeforeground=self.root.cget('bg')) # play/pause button
-		self.playbackButton.pack(pady=10)
+		self.playbackButton.pack(padx=10, side=LEFT)
 		
+		self.nextButton = Button(self.buttonBar, image=self.nextPhoto,
+									command=self.next,
+									borderwidth=0,
+									highlightthickness=0,
+									relief='flat',
+									bg=self.root.cget('bg'),
+									activebackground=self.root.cget('bg'),
+									activeforeground=self.root.cget('bg'))
+		self.nextButton.pack(padx=10, side=LEFT)
 		
 		self.volumeSlider = Scale(self.root, from_=0, to=100, orient=HORIZONTAL)
 		self.volumeSlider.pack(pady=10)
@@ -57,14 +87,14 @@ class piplayerGUI:
 		self.songProgress.pack(pady=10)
 		self.songProgress.bind("<ButtonRelease-1>", self.user_seek)
 		
-	# ~ def play_track(self):
-		# ~ self.player.resume()
+	def previous_track(self):
+		self.player.resume()
 		
+	def next_track(self):
+		self.player.pause()
+
 	def start_track(self):
 		self.player.play_track_from_URI()
-		
-	# ~ def pause_track(self):
-		# ~ self.player.pause()
 		
 	def set_playback(self): # set play or pause
 		if self.reply is not None:
@@ -72,7 +102,12 @@ class piplayerGUI:
 				self.player.pause()
 			else:
 				self.player.resume()
+	
+	def previous(self):
+		self.player.play_previous()
 
+	def next(self):
+		self.player.play_next()
 		
 	def set_volume(self, volume):
 		level = self.volumeSlider.get()
@@ -99,7 +134,7 @@ class piplayerGUI:
 					self.playbackButton.config(image=self.pausePhoto)
 				else:
 					self.playbackButton.config(image=self.playPhoto)
-			else: # acion for no track/device
+			else: # action for no track/device
 				self.currentTrack.config(text="No track playing")
 				self.songProgress['maximum'] = 0
 				self.songProgress['value'] = 0

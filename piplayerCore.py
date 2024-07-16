@@ -88,6 +88,25 @@ class piplayerCore:
 		else:
 			print("No device found")
 
+	def play_previous(self, deviceName = "piplayer"):
+		deviceId = self.get_device_id(deviceName)
+		if deviceId:
+			currentSong = self.sp.current_playback()
+			if currentSong['progress_ms'] > 1000:
+				self.sp.previous_track() # must be called twice as calling once goes back to the start of current
+			self.sp.previous_track()
+			print("Returned to previous song")
+		else:
+			print("No device found")
+			
+	def play_next(self, deviceName = "piplayer"):
+		deviceId = self.get_device_id(deviceName)
+		if deviceId:
+			self.sp.next_track()
+			print("Current track skipped")
+		else:	
+			print("No device found")
+
 	def get_current_state(self, deviceName = "piplayer"):
 		deviceId = self.get_device_id(deviceName)
 		if deviceId:
