@@ -1,12 +1,28 @@
 from tkinter import *
 from tkinter import ttk
 from piplayerCore import piplayerCore
+from PIL import Image, ImageTk
+import os
 
 class piplayerGUI:
 	def __init__(self,root):
 		self.root = root
 		self.root.title("piplayer")
 		self.player = piplayerCore()
+		
+		scriptDir = os.path.dirname(__file__)
+		
+		playPath = os.path.join(scriptDir, 'resources', 'play.png')
+		self.playImage = Image.open(playPath).resize((50, 50), Image.Resampling.LANCZOS)
+		self.playPhoto = ImageTk.PhotoImage(self.playImage)
+		
+		pausePath = os.path.join(scriptDir, 'resources', 'pause.png')
+		self.pauseImage = Image.open(pausePath).resize((50, 50), Image.Resampling.LANCZOS)
+		self.pausePhoto = ImageTk.PhotoImage(self.pauseImage)
+		
+		stopPath = os.path.join(scriptDir, 'resources', 'stop.png')
+		self.stopImage = Image.open(stopPath).resize((50, 50), Image.Resampling.LANCZOS)
+		self.stopPhoto = ImageTk.PhotoImage(self.stopImage)
 		
 		self.create_buttons()
 		self.updateInterval = 500
@@ -18,11 +34,16 @@ class piplayerGUI:
 		self.startButton = Button(self.root, text="Start", command=self.start_track)
 		self.startButton.pack(pady=10)
 		
-		self.playButton = Button(self.root, text="Play", command=self.play_track)
-		self.playButton.pack(pady=10)
+		self.playbackButton = Button(self.root, image=self.stopPhoto,
+									command=self.set_playback,
+									borderwidth=0,
+									highlightthickness=0,
+									relief='flat',
+									bg=self.root.cget('bg'),
+									activebackground=self.root.cget('bg'),
+									activeforeground=self.root.cget('bg')) # play/pause button
+		self.playbackButton.pack(pady=10)
 		
-		self.pauseButton = Button(self.root, text="Pause", command=self.pause_track)
-		self.pauseButton.pack(pady=10)
 		
 		self.volumeSlider = Scale(self.root, from_=0, to=100, orient=HORIZONTAL)
 		self.volumeSlider.pack(pady=10)
@@ -36,15 +57,23 @@ class piplayerGUI:
 		self.songProgress.pack(pady=10)
 		self.songProgress.bind("<ButtonRelease-1>", self.user_seek)
 		
-	def play_track(self):
-		self.player.resume()
+	# ~ def play_track(self):
+		# ~ self.player.resume()
 		
 	def start_track(self):
 		self.player.play_track_from_URI()
 		
-	def pause_track(self):
-		self.player.pause()
-	
+	# ~ def pause_track(self):
+		# ~ self.player.pause()
+		
+	def set_playback(self): # set play or pause
+		if self.reply is not None:
+			if self.reply['playing']:
+				self.player.pause()
+			else:
+				self.player.resume()
+
+		
 	def set_volume(self, volume):
 		level = self.volumeSlider.get()
 		self.player.set_Vol(level)
@@ -66,6 +95,10 @@ class piplayerGUI:
 				self.songProgress['value'] = self.reply['currentTime']
 				if not self.volChange.get(): # check to see if the user is changing volume
 					self.volumeSlider.set(self.reply['volume']) # takes volume from api
+				if self.reply['playing']:
+					self.playbackButton.config(image=self.pausePhoto)
+				else:
+					self.playbackButton.config(image=self.playPhoto)
 			else: # acion for no track/device
 				self.currentTrack.config(text="No track playing")
 				self.songProgress['maximum'] = 0
