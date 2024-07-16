@@ -11,7 +11,7 @@ class piplayerCore:
 		self.CLIENT_ID = '6002fe2429a3402d8aa9d80b9ab42d26'
 		self.CLIENT_SECRET = '888c936f1ff74230a1e2a854e138d0c8'
 		self.REDIRECT_URI = 'http://localhost:8080/callback'
-		self.SCOPE = 'user-read-playback-state,user-modify-playback-state,user-read-currently-playing'
+		self.SCOPE = 'user-read-playback-state,user-modify-playback-state,user-read-currently-playing,user-read-recently-played'
 	
 		# initialise tokens for the player authorisation and refreshing
 		self.sp_oauth = SpotifyOAuth(client_id=self.CLIENT_ID, 
@@ -20,6 +20,8 @@ class piplayerCore:
 						scope=self.SCOPE)
 		
 		tokenInfo = self.sp_oauth.get_cached_token()
+		if not tokenInfo:
+			tokenInfo = self.sp_oauth.get_access_token()
 		self.accessToken = tokenInfo['access_token']
 		self.refreshToken = tokenInfo['refresh_token']
 		self.expiryTime = tokenInfo['expires_at']	
@@ -106,8 +108,17 @@ class piplayerCore:
 			print("Current track skipped")
 		else:	
 			print("No device found")
-
+	
+	def refresh_access(self): # called to refresh the token
+		if time.time() > self.expiryTime:
+			tokenInfo = self.sp_oauth.get_cached_token()
+			self.accessToken = tokenInfo['access_token']
+			self.refreshToken = tokenInfo['refresh_token']
+			self.expiryTime = tokenInfo['expires_at']
+			self.sp = spotipy.Spotify(auth=accessToken)
+	
 	def get_current_state(self, deviceName = "piplayer"):
+		self.refresh_access()
 		deviceId = self.get_device_id(deviceName)
 		if deviceId:
 			currentSong = self.sp.current_playback()
@@ -120,13 +131,30 @@ class piplayerCore:
 				currentTime = currentSong['progress_ms']
 				volume = currentSong['device']['volume_percent']
 				imgURL = track['album']['images'][0]['url'] if track['album']['images'] else "" 
+				
+				# ~ # get previous song
+				# ~ justPlayed = self.sp.current_user_recently_played(limit=20)
+				# ~ prevName = None
+				# ~ prevURL = None
+				# ~ if justPlayed and justPlayed['items']:
+					# ~ recent = justPlayed['items']
+					# ~ for i in range(1, len(recent)):
+						# ~ if recent[i]['track']['uri'] == uri:
+							# ~ if i > 0:
+								# ~ pSong = justPlayed['items'][i-1]['track']
+								# ~ prevName = pSong['name']
+								# ~ prevURL = pSong['album']['images'][0]['url'] if pSong['album']['images'] else None
+								# ~ print(prevURL)
+								# ~ break
 				return {
 					'playing' : currentSong['is_playing'],
 					'name' : name,
 					'length' : length,
 					'currentTime' : currentTime,
 					'volume' : int(volume),
-					'imgURL' : imgURL
+					'imgURL' : imgURL,
+					# ~ 'prevName' : prevName,
+					# ~ 'prevURL' : prevURL
 				}
 		else:
 			print("No device found")

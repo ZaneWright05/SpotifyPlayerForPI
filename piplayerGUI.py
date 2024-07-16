@@ -38,11 +38,18 @@ class piplayerGUI:
 		self.defaultImage = Image.open(defaultPath).resize((150, 150), Image.Resampling.LANCZOS)
 		self.defaultPhoto = ImageTk.PhotoImage(self.defaultImage)
 		
+		self.defaultImageSmall = Image.open(defaultPath).resize((100, 100), Image.Resampling.LANCZOS)
+		self.defaultPhotoSmall = ImageTk.PhotoImage(self.defaultImageSmall)
+		
+		
 		self.create_buttons()
 		self.updateInterval = 500
 		self.volChange = BooleanVar(value=False)
 		self.reply = None # used to store song info - reduce calls
+		self.previousImg = 	None
 		self.trackImg = None #  store img to avoid too many http requests
+		#self.nextImg = None
+		
 		self.request_status()
 		
 	def create_buttons(self):
@@ -91,8 +98,17 @@ class piplayerGUI:
 		self.currentTrack = Label(self.root, text="No track playing")
 		self.currentTrack.pack(pady=10)
 		
-		self.trackImage = Label(self.root, image=self.defaultPhoto)
-		self.trackImage.pack(pady=10)
+		self.imageFrame = Frame(self.root)
+		self.imageFrame.pack(pady=10)
+		
+		self.previousImage = Label(self.imageFrame, image=self.defaultPhotoSmall)
+		self.previousImage.pack(padx=40, side=LEFT)
+		
+		self.trackImage = Label(self.imageFrame, image=self.defaultPhoto)
+		self.trackImage.pack(padx=20, side=LEFT)
+		
+		self.nextImage = Label(self.imageFrame, image=self.defaultPhotoSmall)
+		self.nextImage.pack(padx=40, side=LEFT)
 		
 		# hold timing bar and labels
 		self.progressBar = Frame(self.root)
@@ -153,14 +169,27 @@ class piplayerGUI:
 				self.songProgress['value'] = self.reply['currentTime']
 				self.durationLabel.config(text=self.ms_to_minutes(self.reply['length']))
 				self.currentLabel.config(text=self.ms_to_minutes(self.reply['currentTime']))
+				
 				if not self.volChange.get(): # check to see if the user is changing volume
 					self.volumeSlider.set(self.reply['volume']) # take volume from api
+				
 				if self.reply['playing']:
 					self.playbackButton.config(image=self.pausePhoto)
 				else:
 					self.playbackButton.config(image=self.playPhoto)
+				
 				if self.reply['imgURL']:
 					if self.reply['imgURL'] != self.trackImg: # if image is different
+						if self.trackImg is not None:
+							response = requests.get(self.trackImg)
+							imgData = response.content
+							curImage = Image.open(BytesIO(imgData)).resize((100, 100), Image.Resampling.LANCZOS)
+							curPhoto = ImageTk.PhotoImage(curImage)
+							self.previousImage.config(image=curPhoto)
+							self.previousImage.image = curPhoto
+						else:
+							self.previousImage.config(image=self.defaultPhotoSmall)
+						# change image
 						self.trackImg = self.reply['imgURL'] 
 						response = requests.get(self.reply['imgURL'])
 						imgData = response.content
@@ -169,7 +198,20 @@ class piplayerGUI:
 						self.trackImage.config(image=curPhoto)
 						self.trackImage.image = curPhoto
 				else:
-					self.trackImage.congif(image=self.defaultImage)
+					self.trackImage.config(image=self.defaultPhoto)
+					
+				# ~ if self.reply['prevURL'] is not None:
+					# ~ print(self.reply['prevURL'])
+					# ~ #self.previousImg = self.reply['prevURL'] 
+					# ~ response = requests.get(self.reply['prevURL'])
+					# ~ imgData = response.content
+					# ~ curImage = Image.open(BytesIO(imgData)).resize((100, 100), Image.Resampling.LANCZOS)
+					# ~ curPhoto = ImageTk.PhotoImage(curImage)
+					# ~ self.previousImage.config(image=curPhoto)
+					# ~ self.previousImage.image = curPhoto
+				# ~ else:
+					# ~ self.previousImage.config(image=self.defaultPhotoSmall)
+					
 			else: # action for no track/device
 				self.currentTrack.config(text="No track playing")
 				self.songProgress['maximum'] = 0
@@ -177,6 +219,8 @@ class piplayerGUI:
 				self.playbackButton.config(image=self.stopPhoto)
 				self.durationLabel.config(text="--:--")
 				self.currentLabel.config(text="--:--")
+				self.trackImage.config(image=self.defaultPhoto)
+				self.previousImage.config(image=self.defaultPhotoSmall)
 		except Exception as e:
 			print(e)
 		self.root.after(self.updateInterval, self.request_status) # call function every second
