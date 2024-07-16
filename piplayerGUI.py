@@ -1,7 +1,7 @@
 from tkinter import *
 from tkinter import ttk
 from piplayerCore import piplayerCore
-from PIL import Image, ImageTk
+from PIL import Image, ImageTk, ImageFilter
 import os
 import requests
 from io import BytesIO
@@ -45,10 +45,15 @@ class piplayerGUI:
 		self.create_buttons()
 		self.updateInterval = 500
 		self.volChange = BooleanVar(value=False)
+		
 		self.reply = None # used to store song info - reduce calls
 		self.previousImg = 	None
-		self.trackImg = None #  store img to avoid too many http requests
-		#self.nextImg = None
+		
+		self.currentImgURL = None #  store img to avoid too many http requests
+		self.currentImg = None
+		
+		self.nextImgURL = None
+		self.nextImg = None
 		
 		self.request_status()
 		
@@ -101,14 +106,14 @@ class piplayerGUI:
 		self.imageFrame = Frame(self.root)
 		self.imageFrame.pack(pady=10)
 		
-		self.previousImage = Label(self.imageFrame, image=self.defaultPhotoSmall)
-		self.previousImage.pack(padx=40, side=LEFT)
+		self.previousImageLabel = Label(self.imageFrame, image=self.defaultPhotoSmall)
+		self.previousImageLabel.pack(padx=40, side=LEFT)
 		
 		self.trackImage = Label(self.imageFrame, image=self.defaultPhoto)
 		self.trackImage.pack(padx=20, side=LEFT)
 		
-		self.nextImage = Label(self.imageFrame, image=self.defaultPhotoSmall)
-		self.nextImage.pack(padx=40, side=LEFT)
+		self.nextImageLabel = Label(self.imageFrame, image=self.defaultPhotoSmall)
+		self.nextImageLabel.pack(padx=40, side=LEFT)
 		
 		# hold timing bar and labels
 		self.progressBar = Frame(self.root)
@@ -177,29 +182,69 @@ class piplayerGUI:
 					self.playbackButton.config(image=self.pausePhoto)
 				else:
 					self.playbackButton.config(image=self.playPhoto)
+			
 				
-				if self.reply['imgURL']:
-					if self.reply['imgURL'] != self.trackImg: # if image is different
-						if self.trackImg is not None:
-							response = requests.get(self.trackImg)
-							imgData = response.content
-							curImage = Image.open(BytesIO(imgData)).resize((100, 100), Image.Resampling.LANCZOS)
-							curPhoto = ImageTk.PhotoImage(curImage)
-							self.previousImage.config(image=curPhoto)
-							self.previousImage.image = curPhoto
+				if self.reply['imgURL']: # image url for current song
+					#print(f"reply - {self.reply['imgURL']}, currImgURL {self.currentImgURL}, currImg {self.currentImg}")
+					if self.reply['imgURL'] != self.currentImgURL: #song changed
+						print("song changed")
+						if self.currentImg is not None: # there is something at current
+							# set current to previous
+							print("prev using old")
+							self.previousImg = self.currentImg.resize((100, 100), Image.Resampling.LANCZOS)
+							previousPhoto = ImageTk.PhotoImage(self.previousImg)
+							self.previousImageLabel.config(image=previousPhoto)
+							self.previousImageLabel.image = previousPhoto
 						else:
-							self.previousImage.config(image=self.defaultPhotoSmall)
-						# change image
-						self.trackImg = self.reply['imgURL'] 
-						response = requests.get(self.reply['imgURL'])
-						imgData = response.content
-						curImage = Image.open(BytesIO(imgData)).resize((200, 200), Image.Resampling.LANCZOS)
-						curPhoto = ImageTk.PhotoImage(curImage)
+							print("prev requesting new")
+							self.previousImageLabel.config(image=self.defaultPhotoSmall)
+						
+						# same as the next song image?
+						#print(f"imgURL reply {self.reply['imgURL']}, stored url {self.nextImgURL}")
+						if self.reply['imgURL'] == self.nextImgURL:
+						# use this stored image
+							print("current using stored")	
+							self.currentImg = self.nextImg
+							#self.currentImg = self.currentImg.filter(ImageFilter.SHARPEN)
+						else: # generate new
+							print("current gen new")
+							response = requests.get(self.reply['imgURL'])
+							imgData = response.content
+							self.currentImg = Image.open(BytesIO(imgData)).resize((200, 200), Image.Resampling.LANCZOS)
+						curPhoto = ImageTk.PhotoImage(self.currentImg)
 						self.trackImage.config(image=curPhoto)
 						self.trackImage.image = curPhoto
+						self.currentImgURL = self.reply['imgURL'] # store the url info
+				
+				# and self.currentImgURL is not None: # song has changed and valid
+						# set the previous image to what is stored at current
+					#	print(f"reply - {self.reply['imgURL']}, currImgURL {self.currentImgURL}, currImg {self.currentImg}")
+
 				else:
 					self.trackImage.config(image=self.defaultPhoto)
 					
+				if self.reply['nextURL'] != self.nextImgURL: # next in queue changed
+					if self.reply['nextURL'] is not None: # valid next in queue	
+						self.nextImgURL = self.reply['nextURL']
+						response = requests.get(self.nextImgURL)
+						imgData = response.content
+						curImg = Image.open(BytesIO(imgData)).resize((100, 100), Image.Resampling.LANCZOS)
+						curPhoto = ImageTk.PhotoImage(curImg)
+						self.nextImageLabel.config(image=curPhoto)
+						self.nextImageLabel.image = curPhoto
+						self.nextImg = Image.open(BytesIO(imgData)).resize((200, 200), Image.Resampling.LANCZOS) ## larger size version stored so that it doesnt cause issues from artifacting
+					else:
+						self.nextImageLabel.config(image=self.defaultPhotoSmall)
+					
+						# ~ # request the image from URL if not stored
+						# ~ response = requests.get(self.currentImgURL)
+						# ~ imgData = response.content
+						# ~ self.previousImg = Image.open(BytesIO(imgData)).resize((100, 100), Image.Resampling.LANCZOS)
+						# ~ previousPhoto = ImageTk.PhotoImage(self.previousImg)
+						# ~ self.previousImageLabel.config(image=previousPhoto)
+						# ~ self.previousImageLabel.image = previousPhoto
+						
+				
 				# ~ if self.reply['prevURL'] is not None:
 					# ~ print(self.reply['prevURL'])
 					# ~ #self.previousImg = self.reply['prevURL'] 
@@ -220,7 +265,8 @@ class piplayerGUI:
 				self.durationLabel.config(text="--:--")
 				self.currentLabel.config(text="--:--")
 				self.trackImage.config(image=self.defaultPhoto)
-				self.previousImage.config(image=self.defaultPhotoSmall)
+				self.previousImageLabel.config(image=self.defaultPhotoSmall)
+				self.nextImageLabel.config(image=self.defaultPhotoSmall)
 		except Exception as e:
 			print(e)
 		self.root.after(self.updateInterval, self.request_status) # call function every second

@@ -110,12 +110,13 @@ class piplayerCore:
 			print("No device found")
 	
 	def refresh_access(self): # called to refresh the token
-		if time.time() > self.expiryTime:
-			tokenInfo = self.sp_oauth.get_cached_token()
+		if time.time() > self.expiryTime - 60:
+			tokenInfo = self.sp_oauth.get_access_token(self.refreshToken, as_dict=False)
 			self.accessToken = tokenInfo['access_token']
 			self.refreshToken = tokenInfo['refresh_token']
 			self.expiryTime = tokenInfo['expires_at']
 			self.sp = spotipy.Spotify(auth=accessToken)
+			print("access refreshed")
 	
 	def get_current_state(self, deviceName = "piplayer"):
 		self.refresh_access()
@@ -131,6 +132,10 @@ class piplayerCore:
 				currentTime = currentSong['progress_ms']
 				volume = currentSong['device']['volume_percent']
 				imgURL = track['album']['images'][0]['url'] if track['album']['images'] else "" 
+				queue = self.sp.queue()
+				if queue and queue.get('queue'):
+					nextSong = queue['queue'][0]
+					nextURL = nextSong['album']['images'][0]['url'] if nextSong.get('album') and nextSong['album'].get('images') else None
 				
 				# ~ # get previous song
 				# ~ justPlayed = self.sp.current_user_recently_played(limit=20)
@@ -153,6 +158,7 @@ class piplayerCore:
 					'currentTime' : currentTime,
 					'volume' : int(volume),
 					'imgURL' : imgURL,
+					'nextURL': nextURL
 					# ~ 'prevName' : prevName,
 					# ~ 'prevURL' : prevURL
 				}
