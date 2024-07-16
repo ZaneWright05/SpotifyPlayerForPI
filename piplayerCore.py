@@ -119,12 +119,14 @@ class piplayerCore:
 				mainArtist = track['artists'][0]['name']
 				currentTime = currentSong['progress_ms']
 				volume = currentSong['device']['volume_percent']
+				imgURL = track['album']['images'][0]['url'] if track['album']['images'] else "" 
 				return {
 					'playing' : currentSong['is_playing'],
 					'name' : name,
 					'length' : length,
 					'currentTime' : currentTime,
-					'volume' : int(volume)
+					'volume' : int(volume),
+					'imgURL' : imgURL
 				}
 		else:
 			print("No device found")

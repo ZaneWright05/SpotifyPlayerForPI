@@ -3,6 +3,8 @@ from tkinter import ttk
 from piplayerCore import piplayerCore
 from PIL import Image, ImageTk
 import os
+import requests
+from io import BytesIO
 
 class piplayerGUI:
 	def __init__(self,root):
@@ -32,10 +34,15 @@ class piplayerGUI:
 		self.nextImage = Image.open(nextPath).resize((50, 50), Image.Resampling.LANCZOS)
 		self.nextPhoto = ImageTk.PhotoImage(self.nextImage)
 		
+		defaultPath = os.path.join(scriptDir, 'resources', 'defaultThumbnail.png')
+		self.defaultImage = Image.open(defaultPath).resize((150, 150), Image.Resampling.LANCZOS)
+		self.defaultPhoto = ImageTk.PhotoImage(self.defaultImage)
+		
 		self.create_buttons()
 		self.updateInterval = 500
 		self.volChange = BooleanVar(value=False)
 		self.reply = None # used to store song info - reduce calls
+		self.trackImg = None #  store img to avoid too many http requests
 		self.request_status()
 		
 	def create_buttons(self):
@@ -83,6 +90,9 @@ class piplayerGUI:
 		
 		self.currentTrack = Label(self.root, text="No track playing")
 		self.currentTrack.pack(pady=10)
+		
+		self.trackImage = Label(self.root, image=self.defaultPhoto)
+		self.trackImage.pack(pady=10)
 		
 		# hold timing bar and labels
 		self.progressBar = Frame(self.root)
@@ -149,6 +159,17 @@ class piplayerGUI:
 					self.playbackButton.config(image=self.pausePhoto)
 				else:
 					self.playbackButton.config(image=self.playPhoto)
+				if self.reply['imgURL']:
+					if self.reply['imgURL'] != self.trackImg: # if image is different
+						self.trackImg = self.reply['imgURL'] 
+						response = requests.get(self.reply['imgURL'])
+						imgData = response.content
+						curImage = Image.open(BytesIO(imgData)).resize((200, 200), Image.Resampling.LANCZOS)
+						curPhoto = ImageTk.PhotoImage(curImage)
+						self.trackImage.config(image=curPhoto)
+						self.trackImage.image = curPhoto
+				else:
+					self.trackImage.congif(image=self.defaultImage)
 			else: # action for no track/device
 				self.currentTrack.config(text="No track playing")
 				self.songProgress['maximum'] = 0
