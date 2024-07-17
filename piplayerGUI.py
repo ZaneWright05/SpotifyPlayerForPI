@@ -3,6 +3,7 @@ from tkinter import ttk
 from piplayerCore import piplayerCore
 from PIL import Image, ImageTk, ImageFilter
 import os
+import json
 import requests
 from io import BytesIO
 
@@ -41,7 +42,17 @@ class piplayerGUI:
 		self.defaultImageSmall = Image.open(defaultPath).resize((100, 100), Image.Resampling.LANCZOS)
 		self.defaultPhotoSmall = ImageTk.PhotoImage(self.defaultImageSmall)
 		
+		self.imageDir = os.path.join(scriptDir, 'imageDir') # path to directory that stores the images
+		if not os.path.exists(self.imageDir):
+			os.makedirs(self.imageDir)
 		
+		# ~ self.urlMapPath = os.path.join(self.imageDir, 'url_map.json')
+		# ~ if os.path.exists(self.urlMapPath):
+			# ~ with open(self.urlMapPath, 'r') as f:
+				# ~ self.urlMap = json.load(f)
+		# ~ else:
+			# ~ self.urlMap = {}
+					
 		self.create_buttons()
 		self.updateInterval = 500
 		self.volChange = BooleanVar(value=False)
@@ -56,7 +67,38 @@ class piplayerGUI:
 		self.nextImg = None
 		
 		self.request_status()
+	
+	
+	# used for faster img loading - will be properly used later
+	# https://i.scdn.co/image/ab67616d0000b273cdb645498cd3d8a2db4d05e1
+	# url format - needs to be converted to name for load to work 
+	
+	def load_image(self, url): # load image from online or locally
+		localName = self.gen_local_name(url)
+		localPath = os.path.join(self.imageDir, localName)
+		if os.path.exists(localPath):
+			print("image found locally")
+			return Image.open(localPath)
+		else:
+			print("image being requested")
+			response = requests.get(url)
+			if response.status_code == 200:
+				imgData = response.content
+				self.store_image_local(localName, imgData)
+				return Image.open(BytesIO(imgData))
+		return None	
+			
+	def store_image_local(self, localName, imageData):
+		localPath = os.path.join(self.imageDir, localName)
+		with open(localPath, 'wb') as f:
+			f.write(imageData)
+		print("image stored locally")
 		
+	def gen_local_name(self, url):
+		songCode = url.split('/')[-1] # last index of url split on /
+		name = f"{songCode}.png"
+		return name
+	
 	def create_buttons(self):
 		self.startButton = Button(self.root, text="Start", command=self.start_track)
 		self.startButton.pack(pady=10)
@@ -182,14 +224,18 @@ class piplayerGUI:
 					self.playbackButton.config(image=self.pausePhoto)
 				else:
 					self.playbackButton.config(image=self.playPhoto)
-			
+				
+				
+				# -----
+				# image loading
+				# -----
 				
 				if self.reply['imgURL']: # image url for current song
 					#print(f"reply - {self.reply['imgURL']}, currImgURL {self.currentImgURL}, currImg {self.currentImg}")
 					if self.reply['imgURL'] != self.currentImgURL: #song changed
 						print("song changed")
 						if self.currentImg is not None: # there is something at current
-							# set current to previous
+							# set previous to
 							print("prev using old")
 							self.previousImg = self.currentImg.resize((100, 100), Image.Resampling.LANCZOS)
 							previousPhoto = ImageTk.PhotoImage(self.previousImg)
@@ -207,55 +253,37 @@ class piplayerGUI:
 							self.currentImg = self.nextImg
 							#self.currentImg = self.currentImg.filter(ImageFilter.SHARPEN)
 						else: # generate new
-							print("current gen new")
+							print("current gen new") 
+							# load check here -- returns image.open
+							# need to convert trackurl to endOfURL.png
 							response = requests.get(self.reply['imgURL'])
 							imgData = response.content
+							# store if request req -- image data is stored
 							self.currentImg = Image.open(BytesIO(imgData)).resize((200, 200), Image.Resampling.LANCZOS)
 						curPhoto = ImageTk.PhotoImage(self.currentImg)
 						self.trackImage.config(image=curPhoto)
 						self.trackImage.image = curPhoto
 						self.currentImgURL = self.reply['imgURL'] # store the url info
-				
-				# and self.currentImgURL is not None: # song has changed and valid
-						# set the previous image to what is stored at current
-					#	print(f"reply - {self.reply['imgURL']}, currImgURL {self.currentImgURL}, currImg {self.currentImg}")
 
 				else:
 					self.trackImage.config(image=self.defaultPhoto)
 					
 				if self.reply['nextURL'] != self.nextImgURL: # next in queue changed
 					if self.reply['nextURL'] is not None: # valid next in queue	
+						#print(self.reply['nextURL'])
+						# load check here -- returns image.open
 						self.nextImgURL = self.reply['nextURL']
-						response = requests.get(self.nextImgURL)
-						imgData = response.content
-						curImg = Image.open(BytesIO(imgData)).resize((100, 100), Image.Resampling.LANCZOS)
+						# ~ response = requests.get(self.nextImgURL)
+						# ~ imgData = response.content
+						# store if request req -- image data is stored
+						#curImg = Image.open(BytesIO(imgData)).resize((100, 100), Image.Resampling.LANCZOS)
+						curImg = self.load_image(self.nextImgURL).resize((100, 100), Image.Resampling.LANCZOS)
 						curPhoto = ImageTk.PhotoImage(curImg)
 						self.nextImageLabel.config(image=curPhoto)
 						self.nextImageLabel.image = curPhoto
-						self.nextImg = Image.open(BytesIO(imgData)).resize((200, 200), Image.Resampling.LANCZOS) ## larger size version stored so that it doesnt cause issues from artifacting
+						self.nextImg = self.load_image(self.nextImgURL).resize((200, 200), Image.Resampling.LANCZOS) ## larger size version stored so that it doesnt cause issues from artifacting
 					else:
-						self.nextImageLabel.config(image=self.defaultPhotoSmall)
-					
-						# ~ # request the image from URL if not stored
-						# ~ response = requests.get(self.currentImgURL)
-						# ~ imgData = response.content
-						# ~ self.previousImg = Image.open(BytesIO(imgData)).resize((100, 100), Image.Resampling.LANCZOS)
-						# ~ previousPhoto = ImageTk.PhotoImage(self.previousImg)
-						# ~ self.previousImageLabel.config(image=previousPhoto)
-						# ~ self.previousImageLabel.image = previousPhoto
-						
-				
-				# ~ if self.reply['prevURL'] is not None:
-					# ~ print(self.reply['prevURL'])
-					# ~ #self.previousImg = self.reply['prevURL'] 
-					# ~ response = requests.get(self.reply['prevURL'])
-					# ~ imgData = response.content
-					# ~ curImage = Image.open(BytesIO(imgData)).resize((100, 100), Image.Resampling.LANCZOS)
-					# ~ curPhoto = ImageTk.PhotoImage(curImage)
-					# ~ self.previousImage.config(image=curPhoto)
-					# ~ self.previousImage.image = curPhoto
-				# ~ else:
-					# ~ self.previousImage.config(image=self.defaultPhotoSmall)
+						self.nextImageLabel.config(image=self.defaultPhotoSmall)			
 					
 			else: # action for no track/device
 				self.currentTrack.config(text="No track playing")
