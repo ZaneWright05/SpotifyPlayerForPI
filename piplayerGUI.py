@@ -58,13 +58,14 @@ class piplayerGUI:
 		self.volChange = BooleanVar(value=False)
 		
 		self.reply = None # used to store song info - reduce calls
-		self.previousImg = 	None
+		# ~ self.previousImg = 	None
 		
-		self.currentImgURL = None #  store img to avoid too many http requests
-		self.currentImg = None
+		
+		self.currentImgURL = None # used
+		# ~ self.currentImg = None
 		
 		self.nextImgURL = None
-		self.nextImg = None
+		# ~ self.nextImg = None
 		
 		self.request_status()
 	
@@ -231,38 +232,23 @@ class piplayerGUI:
 				# -----
 				
 				if self.reply['imgURL']: # image url for current song
-					#print(f"reply - {self.reply['imgURL']}, currImgURL {self.currentImgURL}, currImg {self.currentImg}")
 					if self.reply['imgURL'] != self.currentImgURL: #song changed
 						print("song changed")
-						if self.currentImg is not None: # there is something at current
+						if self.currentImgURL is not None: # there is something at current
 							# set previous to
 							print("prev using old")
-							self.previousImg = self.currentImg.resize((100, 100), Image.Resampling.LANCZOS)
-							previousPhoto = ImageTk.PhotoImage(self.previousImg)
-							self.previousImageLabel.config(image=previousPhoto)
-							self.previousImageLabel.image = previousPhoto
+							curImg = self.load_image(self.currentImgURL).resize((100, 100), Image.Resampling.LANCZOS)
+							curPhoto = ImageTk.PhotoImage(curImg)
+							self.previousImageLabel.config(image=curPhoto)
+							self.previousImageLabel.image = curPhoto
 						else:
-							print("prev requesting new")
 							self.previousImageLabel.config(image=self.defaultPhotoSmall)
 						
-						# same as the next song image?
-						#print(f"imgURL reply {self.reply['imgURL']}, stored url {self.nextImgURL}")
-						if self.reply['imgURL'] == self.nextImgURL:
-						# use this stored image
-							print("current using stored")	
-							self.currentImg = self.nextImg
-							#self.currentImg = self.currentImg.filter(ImageFilter.SHARPEN)
-						else: # generate new
-							print("current gen new") 
-							# load check here -- returns image.open
-							# need to convert trackurl to endOfURL.png
-							response = requests.get(self.reply['imgURL'])
-							imgData = response.content
-							# store if request req -- image data is stored
-							self.currentImg = Image.open(BytesIO(imgData)).resize((200, 200), Image.Resampling.LANCZOS)
-						curPhoto = ImageTk.PhotoImage(self.currentImg)
+						curImg = self.load_image(self.reply['imgURL']).resize((200, 200), Image.Resampling.LANCZOS)
+						curPhoto = ImageTk.PhotoImage(curImg)
 						self.trackImage.config(image=curPhoto)
 						self.trackImage.image = curPhoto
+						
 						self.currentImgURL = self.reply['imgURL'] # store the url info
 
 				else:
@@ -270,18 +256,12 @@ class piplayerGUI:
 					
 				if self.reply['nextURL'] != self.nextImgURL: # next in queue changed
 					if self.reply['nextURL'] is not None: # valid next in queue	
-						#print(self.reply['nextURL'])
 						# load check here -- returns image.open
 						self.nextImgURL = self.reply['nextURL']
-						# ~ response = requests.get(self.nextImgURL)
-						# ~ imgData = response.content
-						# store if request req -- image data is stored
-						#curImg = Image.open(BytesIO(imgData)).resize((100, 100), Image.Resampling.LANCZOS)
 						curImg = self.load_image(self.nextImgURL).resize((100, 100), Image.Resampling.LANCZOS)
 						curPhoto = ImageTk.PhotoImage(curImg)
 						self.nextImageLabel.config(image=curPhoto)
 						self.nextImageLabel.image = curPhoto
-						self.nextImg = self.load_image(self.nextImgURL).resize((200, 200), Image.Resampling.LANCZOS) ## larger size version stored so that it doesnt cause issues from artifacting
 					else:
 						self.nextImageLabel.config(image=self.defaultPhotoSmall)			
 					
