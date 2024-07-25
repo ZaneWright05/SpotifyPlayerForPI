@@ -7,6 +7,24 @@ import json
 import requests
 from io import BytesIO
 
+# not tested or implemented at all, just briefly layed out
+class songWidget:
+	def __init__(self, playerGUI, root, songInfo, defaultImg):
+		super.__init__(root)
+		imageURL = songInfo['album']['images'][0]['url'] if songInfo['album']['images'] else None
+		if imageURL is not None:
+			songImage = playerGUI.load_image(imageURL).resize((50, 50), Image.Resampling.LANCZOS
+		else
+			songImage = defaultImg.resize((50, 50), Image.Resampling.LANCZOS)
+		name = songInfo['name']
+		nameLabel = Label(self, text = name)
+		nameLabel.pack(side=LFT, padx = 10)
+		image = Label(self, image=songImage)
+		image.pack(side = LEFT, pady=10)
+		duration = playerGUI.ms_to_minutes(songInfo['duration_ms'])
+		lenLabel = Label(self, text = duration)
+		lenLabel.pack(side = LEFT, pady=10)
+		
 class piplayerGUI:
 	def __init__(self,root):
 		self.root = root
@@ -53,19 +71,14 @@ class piplayerGUI:
 		# ~ else:
 			# ~ self.urlMap = {}
 					
-		self.create_buttons()
+		self.create_widgets()
 		self.updateInterval = 500
 		self.volChange = BooleanVar(value=False)
 		
 		self.reply = None # used to store song info - reduce calls
-		# ~ self.previousImg = 	None
 		
-		
-		self.currentImgURL = None # used
-		# ~ self.currentImg = None
-		
+		self.currentImgURL = None # used	
 		self.nextImgURL = None
-		# ~ self.nextImg = None
 		
 		self.request_status()
 	
@@ -100,9 +113,9 @@ class piplayerGUI:
 		name = f"{songCode}.png"
 		return name
 	
-	def create_buttons(self):
-		self.startButton = Button(self.root, text="Start", command=self.start_track)
-		self.startButton.pack(pady=10)
+	def create_widgets(self):
+		self.songEntry = Entry(width = 100)
+		self.songEntry.pack(pady=10)
 		
 		# hold play back buttons
 		self.buttonBar = Frame(self.root)
@@ -171,9 +184,6 @@ class piplayerGUI:
 		
 		self.durationLabel = Label(self.progressBar, text="--:--")
 		self.durationLabel.pack(padx=10, side=LEFT)
-
-	def start_track(self):
-		self.player.play_track_from_URI()
 		
 	def set_playback(self): # set play or pause
 		if self.reply is not None:
