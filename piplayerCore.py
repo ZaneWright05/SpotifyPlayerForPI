@@ -111,6 +111,7 @@ class piplayerCore:
 	
 	def refresh_access(self): # called to refresh the token
 		if time.time() > self.expiryTime - 60:
+			print("attempting refresh")
 			tokenInfo = self.sp_oauth.get_access_token(self.refreshToken, as_dict=False)
 			self.accessToken = tokenInfo['access_token']
 			self.refreshToken = tokenInfo['refresh_token']
@@ -167,7 +168,8 @@ class piplayerCore:
 					'volume' : int(volume),
 					'imgURL' : imgURL,
 					'nextURL': nextURL,
-					'queue' : allQueue
+					'queue' : allQueue,
+					'playType' : currentSong['context']
 					# ~ 'prevName' : prevName,
 					# ~ 'prevURL' : prevURL
 				}

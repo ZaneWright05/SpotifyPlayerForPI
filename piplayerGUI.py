@@ -331,7 +331,12 @@ class piplayerGUI:
 						self.nextImageLabel.image = curPhoto
 					else:
 						self.nextImageLabel.config(image=self.defaultPhotoSmall)			
-					
+					# detect when ablum is playing to avoid prev being ignored, will be fixed when player implemen albums/playlists etc
+					if self.reply['playType']['type'] == "album":
+						curImg = self.load_image(self.currentImgURL).resize((100, 100), Image.Resampling.LANCZOS)
+						curPhoto = ImageTk.PhotoImage(curImg)
+						self.previousImageLabel.config(image=curPhoto)
+						self.previousImageLabel.image = curPhoto
 			else: # action for no track/device
 				self.currentTrack.config(text="No track playing")
 				self.songProgress['maximum'] = 0
