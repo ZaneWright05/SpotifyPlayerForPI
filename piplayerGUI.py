@@ -8,19 +8,26 @@ import requests
 from io import BytesIO
 
 # not tested or implemented at all, just briefly layed out
-class songWidget:
+class songWidget(Frame):
 	def __init__(self, playerGUI, root, songInfo, defaultImg):
-		super.__init__(root)
+		Frame.__init__(self,root)
+		self.pack(side=TOP, fill=X, padx=10, pady=10)
 		imageURL = songInfo['album']['images'][0]['url'] if songInfo['album']['images'] else None
 		if imageURL is not None:
-			songImage = playerGUI.load_image(imageURL).resize((50, 50), Image.Resampling.LANCZOS
-		else
+			songImage = playerGUI.load_image(imageURL).resize((50, 50), Image.Resampling.LANCZOS)
+		else:
 			songImage = defaultImg.resize((50, 50), Image.Resampling.LANCZOS)
+			
+		songPhoto = ImageTk.PhotoImage(songImage)
+		
 		name = songInfo['name']
 		nameLabel = Label(self, text = name)
-		nameLabel.pack(side=LFT, padx = 10)
-		image = Label(self, image=songImage)
+		nameLabel.pack(side=LEFT, padx = 10)
+		
+		image = Label(self, image=songPhoto)
+		image.image = songPhoto
 		image.pack(side = LEFT, pady=10)
+		
 		duration = playerGUI.ms_to_minutes(songInfo['duration_ms'])
 		lenLabel = Label(self, text = duration)
 		lenLabel.pack(side = LEFT, pady=10)
@@ -185,6 +192,8 @@ class piplayerGUI:
 		self.durationLabel = Label(self.progressBar, text="--:--")
 		self.durationLabel.pack(padx=10, side=LEFT)
 		
+		self.currentSongWidget = None
+		
 	def set_playback(self): # set play or pause
 		if self.reply is not None:
 			if self.reply['playing']:
@@ -244,6 +253,9 @@ class piplayerGUI:
 				if self.reply['imgURL']: # image url for current song
 					if self.reply['imgURL'] != self.currentImgURL: #song changed
 						print("song changed")
+						if self.currentSongWidget is not None:
+							self.currentSongWidget.destroy()
+						self.currentSongWidget = songWidget(self, self.root, self.player.get_current_song(), self.defaultImage)
 						if self.currentImgURL is not None: # there is something at current
 							# set previous to
 							print("prev using old")

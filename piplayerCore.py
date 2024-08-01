@@ -118,6 +118,11 @@ class piplayerCore:
 			self.sp = spotipy.Spotify(auth=accessToken)
 			print("access refreshed")
 	
+	def get_current_song(self, deviceName = "piplayer"):
+		deviceId = self.get_device_id(deviceName)
+		if deviceId:
+			return self.sp.current_playback()['item']
+	
 	def get_current_state(self, deviceName = "piplayer"):
 		self.refresh_access()
 		deviceId = self.get_device_id(deviceName)
