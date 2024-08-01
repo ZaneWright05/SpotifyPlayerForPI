@@ -141,6 +141,8 @@ class piplayerCore:
 				if queue and queue.get('queue'):
 					nextSong = queue['queue'][0]
 					nextURL = nextSong['album']['images'][0]['url'] if nextSong.get('album') and nextSong['album'].get('images') else None
+					allQueue = queue['queue']
+				
 				
 				# ~ # get previous song
 				# ~ justPlayed = self.sp.current_user_recently_played(limit=20)
@@ -158,12 +160,14 @@ class piplayerCore:
 								# ~ break
 				return {
 					'playing' : currentSong['is_playing'],
+					'currURI' : uri,
 					'name' : name,
 					'length' : length,
 					'currentTime' : currentTime,
 					'volume' : int(volume),
 					'imgURL' : imgURL,
-					'nextURL': nextURL
+					'nextURL': nextURL,
+					'queue' : allQueue
 					# ~ 'prevName' : prevName,
 					# ~ 'prevURL' : prevURL
 				}

@@ -1,5 +1,6 @@
 from tkinter import *
 from tkinter import ttk
+from tkinter import font as tkfont
 from piplayerCore import piplayerCore
 from PIL import Image, ImageTk, ImageFilter
 import os
@@ -7,11 +8,10 @@ import json
 import requests
 from io import BytesIO
 
-# not tested or implemented at all, just briefly layed out
 class songWidget(Frame):
 	def __init__(self, playerGUI, root, songInfo, defaultImg):
-		Frame.__init__(self,root)
-		self.pack(side=TOP, fill=X, padx=10, pady=10)
+		Frame.__init__(self,root, bd=1, relief=RAISED)
+		self.songURI = songInfo['uri']
 		imageURL = songInfo['album']['images'][0]['url'] if songInfo['album']['images'] else None
 		if imageURL is not None:
 			songImage = playerGUI.load_image(imageURL).resize((50, 50), Image.Resampling.LANCZOS)
@@ -21,7 +21,11 @@ class songWidget(Frame):
 		songPhoto = ImageTk.PhotoImage(songImage)
 		
 		name = songInfo['name']
-		nameLabel = Label(self, text = name)
+		if len(name) > 15:
+			name = name[:12] + "..."
+		else:
+			name = name.ljust(15)
+		nameLabel = Label(self, text = name, font = tkfont.Font(family="Courier New", size=8))
 		nameLabel.pack(side=LEFT, padx = 10)
 		
 		image = Label(self, image=songPhoto)
@@ -31,9 +35,13 @@ class songWidget(Frame):
 		duration = playerGUI.ms_to_minutes(songInfo['duration_ms'])
 		lenLabel = Label(self, text = duration)
 		lenLabel.pack(side = LEFT, pady=10)
-		
+	
+	def get_uri(self):
+			return self.songURI
+			
 class piplayerGUI:
 	def __init__(self,root):
+		self.flag = False
 		self.root = root
 		self.root.title("piplayer")
 		self.player = piplayerCore()
@@ -70,16 +78,9 @@ class piplayerGUI:
 		self.imageDir = os.path.join(scriptDir, 'imageDir') # path to directory that stores the images
 		if not os.path.exists(self.imageDir):
 			os.makedirs(self.imageDir)
-		
-		# ~ self.urlMapPath = os.path.join(self.imageDir, 'url_map.json')
-		# ~ if os.path.exists(self.urlMapPath):
-			# ~ with open(self.urlMapPath, 'r') as f:
-				# ~ self.urlMap = json.load(f)
-		# ~ else:
-			# ~ self.urlMap = {}
-					
+				
 		self.create_widgets()
-		self.updateInterval = 500
+		self.updateInterval = 750
 		self.volChange = BooleanVar(value=False)
 		
 		self.reply = None # used to store song info - reduce calls
@@ -121,12 +122,35 @@ class piplayerGUI:
 		return name
 	
 	def create_widgets(self):
-		self.songEntry = Entry(width = 100)
-		self.songEntry.pack(pady=10)
+		# ~ self.songEntry = Entry(width = 100)
+		# ~ self.songEntry.pack(pady=10)
+		self.mainFrame= Frame(self.root)
+		self.mainFrame.pack(fill=BOTH, expand=True)
+
+		self.playBackFrame = Frame(self.mainFrame)
+		self.playBackFrame.pack(side=LEFT, fill=BOTH, expand=True)
+		
+		self.queueFrame = Frame(self.mainFrame, bg='blue')
+		self.queueFrame.pack(side=RIGHT, fill=Y)
+		
+		self.queueCanvas = Canvas(self.queueFrame, bd=0, highlightthickness=0, width= 200)
+		self.queueCanvas.pack(side=LEFT, fill=BOTH, expand=True)
+		
+		self.scrollBar = Scrollbar(self.queueFrame, orient=VERTICAL, command=self.queueCanvas.yview)
+		self.scrollBar.pack(side=RIGHT, fill=Y)
+		
+		self.queueCanvas.configure(yscrollcommand=self.scrollBar.set)
+		
+		self.queueWidget = Frame(self.queueCanvas)
+		self.queueCanvas.create_window((0,0), window=self.queueWidget, anchor='nw')
+
+				
+		self.queueWidget.bind("<Configure>", lambda e: self.queueCanvas.configure(scrollregion=self.queueCanvas.bbox("all")))
+
 		
 		# hold play back buttons
-		self.buttonBar = Frame(self.root)
-		self.buttonBar.pack(pady=10)
+		self.buttonBar = Frame(self.playBackFrame)
+		self.buttonBar.pack(pady=15)
 		
 		self.previousButton = Button(self.buttonBar, image=self.previousPhoto,
 									command=self.previous,
@@ -158,15 +182,15 @@ class piplayerGUI:
 									activeforeground=self.root.cget('bg'))
 		self.nextButton.pack(padx=10, side=LEFT)
 		
-		self.volumeSlider = Scale(self.root, from_=0, to=100, orient=HORIZONTAL)
+		self.volumeSlider = Scale(self.playBackFrame, from_=0, to=100, orient=HORIZONTAL)
 		self.volumeSlider.pack(pady=10)
 		self.volumeSlider.bind("<ButtonRelease-1>", self.set_volume) # bound to reduce calls to spotify - only change when movement done
 		self.volumeSlider.bind("<Button-1>", lambda event: self.volChange.set(True)) # block system moving slider
 		
-		self.currentTrack = Label(self.root, text="No track playing")
+		self.currentTrack = Label(self.playBackFrame, text="No track playing")
 		self.currentTrack.pack(pady=10)
 		
-		self.imageFrame = Frame(self.root)
+		self.imageFrame = Frame(self.playBackFrame)
 		self.imageFrame.pack(pady=10)
 		
 		self.previousImageLabel = Label(self.imageFrame, image=self.defaultPhotoSmall)
@@ -179,7 +203,7 @@ class piplayerGUI:
 		self.nextImageLabel.pack(padx=40, side=LEFT)
 		
 		# hold timing bar and labels
-		self.progressBar = Frame(self.root)
+		self.progressBar = Frame(self.playBackFrame)
 		self.progressBar.pack(pady=10)
 		
 		self.currentLabel = Label(self.progressBar, text="--:--")
@@ -193,6 +217,9 @@ class piplayerGUI:
 		self.durationLabel.pack(padx=10, side=LEFT)
 		
 		self.currentSongWidget = None
+	
+		# ~ self.queueWidget = Frame(self.root)
+		# ~ self.queueWidget.pack(side=RIGHT, fill=Y, padx=10, pady=10)
 		
 	def set_playback(self): # set play or pause
 		if self.reply is not None:
@@ -206,6 +233,7 @@ class piplayerGUI:
 
 	def next(self):
 		self.player.play_next()
+
 		
 	def set_volume(self, volume):
 		level = self.volumeSlider.get()
@@ -226,7 +254,23 @@ class piplayerGUI:
 		if seconds < 10:
 			seconds =  "0" + str (seconds)
 		return f"{minutes}:{seconds}"		
-	
+
+	def update_song_queue(self, queue, currURI):
+		first = None
+		children = self.queueWidget.winfo_children()
+		if children:
+			first = children[0].get_uri()
+		if currURI == first and first is not None: # next song is playing 		
+			self.queueWidget.winfo_children()[0].destroy()
+		else: # a different song has been seleted, queue changed 
+			for widget in self.queueWidget.winfo_children():
+				widget.destroy()
+			for track in queue:
+				sw = songWidget(self, self.queueWidget, track, self.defaultImage)
+				sw.pack(expand=True, fill=X,side=TOP,pady=2)
+			
+			self.queueCanvas.configure(scrollregion=self.queueCanvas.bbox('all'))
+
 	def request_status(self):
 		try:
 			self.reply = self.player.get_current_state()
@@ -255,7 +299,8 @@ class piplayerGUI:
 						print("song changed")
 						if self.currentSongWidget is not None:
 							self.currentSongWidget.destroy()
-						self.currentSongWidget = songWidget(self, self.root, self.player.get_current_song(), self.defaultImage)
+						self.update_song_queue(self.reply['queue'], self.reply['currURI'])
+						self.currentSongWidget = songWidget(self, self.playBackFrame, self.player.get_current_song(), self.defaultImage)
 						if self.currentImgURL is not None: # there is something at current
 							# set previous to
 							print("prev using old")
@@ -304,5 +349,5 @@ class piplayerGUI:
 if __name__ == "__main__":
 	root = Tk()
 	app = piplayerGUI(root)
-	root.geometry("900x900+25+25")
+	root.geometry("1360x768+0+0")
 	root.mainloop()
