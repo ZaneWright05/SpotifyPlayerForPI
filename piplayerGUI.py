@@ -279,40 +279,28 @@ class piplayerGUI:
 		if songUri:
 			print(songUri)
 			songWidgets = self.queueWidget.winfo_children()
-			addToQueue = False
+			# ~ addToQueue = False
 			for widget in songWidgets:
-				if addToQueue: 
-					self.player.queue_from_uri(widget.get_uri())
-				else:
-					self.next()
 				if widget.get_uri() == songUri:
-					addToQueue = True
-			# ~ index = songWidgets.index(clickedSong)
-			# ~ print(f"widget {index} clicked")
-			# ~ songUri = songWidgets[index].get_uri()
-			#self.player.play_track_from_URI(songUri)
-				# ~ self.player.resume()
-				# ~ for x in range(index + 1, len(self.currentQueue)): # add songs after to queue
-					# ~ uri = songWidgets[x].get_uri()
-					# ~ self.player.queue_from_uri(uri)
-		
-		# code to update queue
-		for widget in self.queueWidget.winfo_children():
-			widget.destroy()
-			# ~ self.songWidgets = {}
-		for track in self.currentQueue:
-			sw = songWidget(self, self.queueWidget, track, self.defaultImage)
-			sw.pack(expand=True, fill=X,side=TOP,pady=2)		
-				# ~ self.songWidgets[track['uri']] = sw
-					#sw.bind("<Button-1>", self.queue_song_clicked)
-					
-		self.queueCanvas.configure(scrollregion=self.queueCanvas.bbox('all'))
-		
-		
-		self.player.resume()
-		self.queueChange.set(True)
+					self.next()
+					break
+				else:
+					self.next()		
+			self.player.resume()
+			
+			def poll():
+				state = self.player.get_current_song()
+				if state['uri'] == songUri:
+					self.queueChange.set(True)
+				else:
+					self.root.after(500, poll)
+			
+			poll()
+			self.queueCanvas.configure(scrollregion=self.queueCanvas.bbox('all'))		
+	
 		
 	def update_song_queue(self, queue, currURI):
+		# would prefer a more intelligent sol - not deleting songs that are still there
 		if self.queueChange.get():
 			first = None
 			children = self.queueWidget.winfo_children()
