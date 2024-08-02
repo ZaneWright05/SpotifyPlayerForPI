@@ -46,7 +46,7 @@ class piplayerCore:
 		return None
 		
 	# not like us uri for testing: spotify:track:6AI3ezQ4o3HUoP6Dhudph3
-	def play_track_from_URI(self, trackUri ="spotify:track:6AI3ezQ4o3HUoP6Dhudph3" , deviceName="piplayer"):
+	def play_track_from_URI(self, trackUri, deviceName="piplayer"):
 		deviceId = self.get_device_id(deviceName)
 		if deviceId:
 			self.sp.start_playback(device_id = deviceId, uris=[trackUri])
@@ -123,6 +123,13 @@ class piplayerCore:
 		deviceId = self.get_device_id(deviceName)
 		if deviceId:
 			return self.sp.current_playback()['item']
+	
+	def queue_from_uri(self, trackUri, deviceName = "piplayer"):
+		deviceId = self.get_device_id(deviceName)
+		if deviceId:
+				self.sp.add_to_queue(trackUri, deviceId)
+		else:
+			print("No device found")
 	
 	def get_current_state(self, deviceName = "piplayer"):
 		self.refresh_access()

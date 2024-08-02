@@ -11,10 +11,11 @@ from io import BytesIO
 class songWidget(Frame):
 	def __init__(self, playerGUI, root, songInfo, defaultImg):
 		Frame.__init__(self,root, bd=1, relief=RAISED)
+		self.playerGUI = playerGUI
 		self.songURI = songInfo['uri']
 		imageURL = songInfo['album']['images'][0]['url'] if songInfo['album']['images'] else None
 		if imageURL is not None:
-			songImage = playerGUI.load_image(imageURL).resize((50, 50), Image.Resampling.LANCZOS)
+			songImage = self.playerGUI.load_image(imageURL).resize((50, 50), Image.Resampling.LANCZOS)
 		else:
 			songImage = defaultImg.resize((50, 50), Image.Resampling.LANCZOS)
 			
@@ -35,9 +36,19 @@ class songWidget(Frame):
 		duration = playerGUI.ms_to_minutes(songInfo['duration_ms'])
 		lenLabel = Label(self, text = duration)
 		lenLabel.pack(side = LEFT, pady=10)
-	
+		
+		self.bind("<Button-1>", self.on_click)
+		
+		
 	def get_uri(self):
-			return self.songURI
+		return self.songURI
+	
+	def get_GUI(self):
+		return self.playerGUI
+		
+	def on_click(self, event):
+		# ~ self.master.queue_song_clicked(self.get_uri())
+		self.get_GUI().queue_song_clicked(self.get_uri())
 			
 class piplayerGUI:
 	def __init__(self,root):
@@ -83,10 +94,17 @@ class piplayerGUI:
 		self.updateInterval = 750
 		self.volChange = BooleanVar(value=False)
 		
+		self.queueChange = BooleanVar(value=True)
+		
 		self.reply = None # used to store song info - reduce calls
 		
 		self.currentImgURL = None # used	
 		self.nextImgURL = None
+		self.currentQueue = None # var to hold current queue
+		
+		# ~ self.songWidgets = {}
+		
+		# ~ self.root.bind("<<SongClicked>>", self.queue_song_clicked)
 		
 		self.request_status()
 	
@@ -255,22 +273,64 @@ class piplayerGUI:
 			seconds =  "0" + str (seconds)
 		return f"{minutes}:{seconds}"		
 
+	def queue_song_clicked(self, songUri):
+		self.queueChange.set(False)
+		self.player.pause()
+		if songUri:
+			print(songUri)
+			songWidgets = self.queueWidget.winfo_children()
+			addToQueue = False
+			for widget in songWidgets:
+				if addToQueue: 
+					self.player.queue_from_uri(widget.get_uri())
+				else:
+					self.next()
+				if widget.get_uri() == songUri:
+					addToQueue = True
+			# ~ index = songWidgets.index(clickedSong)
+			# ~ print(f"widget {index} clicked")
+			# ~ songUri = songWidgets[index].get_uri()
+			#self.player.play_track_from_URI(songUri)
+				# ~ self.player.resume()
+				# ~ for x in range(index + 1, len(self.currentQueue)): # add songs after to queue
+					# ~ uri = songWidgets[x].get_uri()
+					# ~ self.player.queue_from_uri(uri)
+		
+		# code to update queue
+		for widget in self.queueWidget.winfo_children():
+			widget.destroy()
+			# ~ self.songWidgets = {}
+		for track in self.currentQueue:
+			sw = songWidget(self, self.queueWidget, track, self.defaultImage)
+			sw.pack(expand=True, fill=X,side=TOP,pady=2)		
+				# ~ self.songWidgets[track['uri']] = sw
+					#sw.bind("<Button-1>", self.queue_song_clicked)
+					
+		self.queueCanvas.configure(scrollregion=self.queueCanvas.bbox('all'))
+		
+		
+		self.player.resume()
+		self.queueChange.set(True)
+		
 	def update_song_queue(self, queue, currURI):
-		first = None
-		children = self.queueWidget.winfo_children()
-		if children:
-			first = children[0].get_uri()
-		if currURI == first and first is not None: # next song is playing 		
-			self.queueWidget.winfo_children()[0].destroy()
-		else: # a different song has been seleted, queue changed 
-			for widget in self.queueWidget.winfo_children():
-				widget.destroy()
-			for track in queue:
-				sw = songWidget(self, self.queueWidget, track, self.defaultImage)
-				sw.pack(expand=True, fill=X,side=TOP,pady=2)
-			
-			self.queueCanvas.configure(scrollregion=self.queueCanvas.bbox('all'))
-
+		if self.queueChange.get():
+			first = None
+			children = self.queueWidget.winfo_children()
+			if children:
+				first = children[0].get_uri()
+			if currURI == first and first is not None: # next song is playing 		
+				self.queueWidget.winfo_children()[0].destroy()
+			else: # a different song has been seleted, queue changed 
+				for widget in self.queueWidget.winfo_children():
+					widget.destroy()
+				self.songWidgets = {}
+				for track in queue:
+					sw = songWidget(self, self.queueWidget, track, self.defaultImage)
+					sw.pack(expand=True, fill=X,side=TOP,pady=2)
+					#sw.bind("<Button-1>", self.queue_song_clicked())
+					
+				self.queueCanvas.configure(scrollregion=self.queueCanvas.bbox('all'))
+		
 	def request_status(self):
 		try:
 			self.reply = self.player.get_current_state()
@@ -280,6 +340,7 @@ class piplayerGUI:
 				self.songProgress['value'] = self.reply['currentTime']
 				self.durationLabel.config(text=self.ms_to_minutes(self.reply['length']))
 				self.currentLabel.config(text=self.ms_to_minutes(self.reply['currentTime']))
+				self.currentQueue = self.reply['queue']
 				
 				if not self.volChange.get(): # check to see if the user is changing volume
 					self.volumeSlider.set(self.reply['volume']) # take volume from api
@@ -297,10 +358,13 @@ class piplayerGUI:
 				if self.reply['imgURL']: # image url for current song
 					if self.reply['imgURL'] != self.currentImgURL: #song changed
 						print("song changed")
+						
 						if self.currentSongWidget is not None:
 							self.currentSongWidget.destroy()
-						self.update_song_queue(self.reply['queue'], self.reply['currURI'])
+						self.update_song_queue(self.currentQueue, self.reply['currURI'])
 						self.currentSongWidget = songWidget(self, self.playBackFrame, self.player.get_current_song(), self.defaultImage)
+						self.currentSongWidget.pack()
+						
 						if self.currentImgURL is not None: # there is something at current
 							# set previous to
 							print("prev using old")
