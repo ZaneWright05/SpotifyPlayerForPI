@@ -293,7 +293,7 @@ class piplayerGUI:
 				if state['uri'] == songUri:
 					self.queueChange.set(True)
 				else:
-					self.root.after(500, poll)
+					self.root.after(250, poll)
 			
 			poll()
 			self.queueCanvas.configure(scrollregion=self.queueCanvas.bbox('all'))		
@@ -305,20 +305,28 @@ class piplayerGUI:
 			first = None
 			children = self.queueWidget.winfo_children()
 			if children:
-				first = children[0].get_uri()
-			if currURI == first and first is not None: # next song is playing 		
-				self.queueWidget.winfo_children()[0].destroy()
-			else: # a different song has been seleted, queue changed 
+				end = False
+				for widget in children:
+					current = widget.get_uri()
+					if currURI == current and current is not None: # next song is playing 		
+						widget.destroy()
+						end = True
+					if end:
+						break
+					else:
+						widget.destroy()
+			
+			else: # a different song has been seleted, queue changed
 				for widget in self.queueWidget.winfo_children():
-					widget.destroy()
-				self.songWidgets = {}
+					widget.destroy()		
 				for track in queue:
 					sw = songWidget(self, self.queueWidget, track, self.defaultImage)
 					sw.pack(expand=True, fill=X,side=TOP,pady=2)
 					#sw.bind("<Button-1>", self.queue_song_clicked())
 					
 				self.queueCanvas.configure(scrollregion=self.queueCanvas.bbox('all'))
-		
+			self.player.resume()
+			
 	def request_status(self):
 		try:
 			self.reply = self.player.get_current_state()
