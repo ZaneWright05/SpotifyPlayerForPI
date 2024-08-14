@@ -167,8 +167,24 @@ class piplayerGUI:
 
 				
 		self.queueWidget.bind("<Configure>", lambda e: self.queueCanvas.configure(scrollregion=self.queueCanvas.bbox("all")))
-
-		
+			
+			
+		# code to add mouse scoll functionality to the queue widget
+		self.queueCanvas.bind("<Enter>", lambda e: bind_scroll())
+		self.queueCanvas.bind("<Leave>", lambda e: unbind_scroll())
+	
+		def bind_scroll():
+			self.queueCanvas.bind_all("<Button-4>", lambda e: self.queueCanvas.yview_scroll(-1, "units"))
+			self.queueCanvas.bind_all("<Button-5>", lambda e: self.queueCanvas.yview_scroll(1, "units"))
+			
+		def unbind_scroll():
+			self.queueCanvas.unbind_all("<Button-4>")
+			self.queueCanvas.unbind_all("<Button-5>")
+			
+		## attempt at drag to scroll, interactive widgets mess with, poss change to unclick - attempted
+		# ~ self.queueCanvas.bind("<ButtonPress-1>", lambda e: self.queueCanvas.scan_mark(e.x, e.y))
+		# ~ self.queueCanvas.bind("<B1-Motion>", lambda e: self.queueCanvas.scan_dragto(e.x, e.y, gain=1))
+			
 		# hold play back buttons
 		self.buttonBar = Frame(self.playBackFrame)
 		self.buttonBar.pack(pady=15)
@@ -343,7 +359,7 @@ class piplayerGUI:
 				if len(self.queueWidget.winfo_children()) == 0:
 					for track in queue:
 						sw = songWidget(self, self.queueWidget, track, self.defaultImage)
-						sw.pack(expand=True, fill=X,side=TOP,pady=1)
+						sw.pack(expand=True, fill=X,side=TOP,pady=2)
 			
 			else: # a different song has been seleted, queue changed
 				print("clearing all")
