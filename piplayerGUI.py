@@ -186,6 +186,19 @@ class piplayerGUI:
 		# ~ self.queueCanvas.bind("<B1-Motion>", lambda e: self.queueCanvas.scan_dragto(e.x, e.y, gain=1))
 			
 		# hold play back buttons
+		
+		
+		self.searchBar = Entry(self.playBackFrame)
+		self.searchBar.pack(pady=5)
+		
+		self.searchButton = Button(self.playBackFrame, text="Search", command=lambda: open_Search(self))
+		self.searchButton.pack()
+		
+
+		def open_Search(self):
+			overlay = Toplevel(self.playBackFrame)
+			overlay.geometry("100x200+50+50")
+		
 		self.buttonBar = Frame(self.playBackFrame)
 		self.buttonBar.pack(pady=15)
 		
