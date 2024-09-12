@@ -31,7 +31,7 @@ class piplayerCore:
 		self.sp = spotipy.Spotify(auth=self.accessToken)
 		
 		self.autoQueue = False # FLAG for loading auto queue funtionality
-		self.setup_Queue_PlayLists()
+		mainId = self.setup_Queue_PlayList()
 		
 		# initialise threading and pause event
 		# ~ self.pauseEvent = threading.Event()
@@ -40,7 +40,7 @@ class piplayerCore:
 		# ~ self.listener = threading.Thread(target=self.track_Listener, daemon=True)
 		# ~ self.listener.start()
 		
-	def setup_Queue_PlayLists(self, deviceName="piplayer"):
+	def setup_Queue_PlayList(self, deviceName="piplayer"):
 		deviceId = self.get_device_id(deviceName)
 		if deviceId:
 			mainQueue = False # variable to indicate if the playlists exist
@@ -53,17 +53,25 @@ class piplayerCore:
 					mainQueue = True
 					print("Main q found")
 					self.clear_Playlist(userId, playlist['id'])
+					main = playlist['id']
 				if playlist['name'] == "backQueue":
 					backQueue = True
 					print("Back q found")
 					self.clear_Playlist(userId, playlist['id'])
 			
 			if mainQueue == False:
-					self.sp.user_playlist_create(user=userId, name="mainQueue", public=True)
+					main = self.sp.user_playlist_create(user=userId, name="mainQueue", public=True)
+					main = main['id']
 					print("Main q created")
 			if backQueue == False:
 					print("Back q created")
 					self.sp.user_playlist_create(user=userId, name="backQueue", public=True)
+			
+			queue = self.sp.queue()
+			trackIds = [track['id'] for track in queue['queue']] 
+			#for song in queue['queue']:
+			self.sp.user_playlist_add_tracks(userId, main, trackIds) 
+			
 	
 	def clear_Playlist(self, userId, playlistId): # may need to be updated to handle pagination?
 		tracks = self.sp.playlist_tracks(playlistId)
