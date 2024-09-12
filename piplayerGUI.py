@@ -109,6 +109,7 @@ class piplayerGUI:
 		
 		# ~ self.root.bind("<<SongClicked>>", self.queue_song_clicked)
 		
+		# ~ self.player.setup_Queue_PlayLists()
 		self.request_status()
 	
 	
@@ -231,13 +232,17 @@ class piplayerGUI:
 		self.imageFrame.pack(pady=10)
 		
 		self.previousImageLabel = Label(self.imageFrame, image=self.defaultPhotoSmall)
+		self.previousImageLabel.bind("<Button-1>",lambda event: self.previous())
 		self.previousImageLabel.pack(padx=40, side=LEFT)
+		
 		
 		self.trackImage = Label(self.imageFrame, image=self.defaultPhoto)
 		self.trackImage.pack(padx=20, side=LEFT)
 		
 		self.nextImageLabel = Label(self.imageFrame, image=self.defaultPhotoSmall)
+		self.nextImageLabel.bind("<Button-1>",lambda event: self.next())
 		self.nextImageLabel.pack(padx=40, side=LEFT)
+		
 		
 		# hold timing bar and labels
 		self.progressBar = Frame(self.playBackFrame)
