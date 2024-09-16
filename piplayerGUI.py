@@ -62,55 +62,57 @@ class piplayerGUI:
 		
 		scriptDir = os.path.dirname(__file__)
 		
-		playPath = os.path.join(scriptDir, 'resources', 'play.png')
-		self.playImage = Image.open(playPath).resize((50, 50), Image.Resampling.LANCZOS)
-		self.playPhoto = ImageTk.PhotoImage(self.playImage)
+		if self.root is not None:
+
+			playPath = os.path.join(scriptDir, 'resources', 'play.png')
+			self.playImage = Image.open(playPath).resize((50, 50), Image.Resampling.LANCZOS)
+			self.playPhoto = ImageTk.PhotoImage(self.playImage)
+			
+			pausePath = os.path.join(scriptDir, 'resources', 'pause.png')
+			self.pauseImage = Image.open(pausePath).resize((50, 50), Image.Resampling.LANCZOS)
+			self.pausePhoto = ImageTk.PhotoImage(self.pauseImage)
+			
+			stopPath = os.path.join(scriptDir, 'resources', 'stop.png')
+			self.stopImage = Image.open(stopPath).resize((50, 50), Image.Resampling.LANCZOS)
+			self.stopPhoto = ImageTk.PhotoImage(self.stopImage)
+			
+			previousPath = os.path.join(scriptDir, 'resources', 'previous.png')
+			self.previousImage = Image.open(previousPath).resize((50, 50), Image.Resampling.LANCZOS)
+			self.previousPhoto = ImageTk.PhotoImage(self.previousImage)
+			
+			nextPath = os.path.join(scriptDir, 'resources', 'next.png')
+			self.nextImage = Image.open(nextPath).resize((50, 50), Image.Resampling.LANCZOS)
+			self.nextPhoto = ImageTk.PhotoImage(self.nextImage)
+			
+			defaultPath = os.path.join(scriptDir, 'resources', 'defaultThumbnail.png')
+			self.defaultImage = Image.open(defaultPath).resize((150, 150), Image.Resampling.LANCZOS)
+			self.defaultPhoto = ImageTk.PhotoImage(self.defaultImage)
+			
+			self.defaultImageSmall = Image.open(defaultPath).resize((100, 100), Image.Resampling.LANCZOS)
+			self.defaultPhotoSmall = ImageTk.PhotoImage(self.defaultImageSmall)
+			
+			self.imageDir = os.path.join(scriptDir, 'imageDir') # path to directory that stores the images
+			if not os.path.exists(self.imageDir):
+				os.makedirs(self.imageDir)
+					
+			self.create_widgets()
+			self.updateInterval = 500
+			self.volChange = BooleanVar(value=False)
+			
+			self.queueChange = BooleanVar(value=True)
+			
+			self.reply = None # used to store song info - reduce calls
+			
+			self.currentImgURL = None # used	
+			self.nextImgURL = None
+			self.currentQueue = None # var to hold current queue
+			
+			# ~ self.songWidgets = {}
+			
+			# ~ self.root.bind("<<SongClicked>>", self.queue_song_clicked)
+			
+			self.request_status()
 		
-		pausePath = os.path.join(scriptDir, 'resources', 'pause.png')
-		self.pauseImage = Image.open(pausePath).resize((50, 50), Image.Resampling.LANCZOS)
-		self.pausePhoto = ImageTk.PhotoImage(self.pauseImage)
-		
-		stopPath = os.path.join(scriptDir, 'resources', 'stop.png')
-		self.stopImage = Image.open(stopPath).resize((50, 50), Image.Resampling.LANCZOS)
-		self.stopPhoto = ImageTk.PhotoImage(self.stopImage)
-		
-		previousPath = os.path.join(scriptDir, 'resources', 'previous.png')
-		self.previousImage = Image.open(previousPath).resize((50, 50), Image.Resampling.LANCZOS)
-		self.previousPhoto = ImageTk.PhotoImage(self.previousImage)
-		
-		nextPath = os.path.join(scriptDir, 'resources', 'next.png')
-		self.nextImage = Image.open(nextPath).resize((50, 50), Image.Resampling.LANCZOS)
-		self.nextPhoto = ImageTk.PhotoImage(self.nextImage)
-		
-		defaultPath = os.path.join(scriptDir, 'resources', 'defaultThumbnail.png')
-		self.defaultImage = Image.open(defaultPath).resize((150, 150), Image.Resampling.LANCZOS)
-		self.defaultPhoto = ImageTk.PhotoImage(self.defaultImage)
-		
-		self.defaultImageSmall = Image.open(defaultPath).resize((100, 100), Image.Resampling.LANCZOS)
-		self.defaultPhotoSmall = ImageTk.PhotoImage(self.defaultImageSmall)
-		
-		self.imageDir = os.path.join(scriptDir, 'imageDir') # path to directory that stores the images
-		if not os.path.exists(self.imageDir):
-			os.makedirs(self.imageDir)
-				
-		self.create_widgets()
-		self.updateInterval = 500
-		self.volChange = BooleanVar(value=False)
-		
-		self.queueChange = BooleanVar(value=True)
-		
-		self.reply = None # used to store song info - reduce calls
-		
-		self.currentImgURL = None # used	
-		self.nextImgURL = None
-		self.currentQueue = None # var to hold current queue
-		
-		# ~ self.songWidgets = {}
-		
-		# ~ self.root.bind("<<SongClicked>>", self.queue_song_clicked)
-		
-		self.request_status()
-	
 	
 	# used for faster img loading - will be properly used later
 	# https://i.scdn.co/image/ab67616d0000b273cdb645498cd3d8a2db4d05e1
@@ -197,8 +199,39 @@ class piplayerGUI:
 
 		def open_Search(self):
 			overlay = Toplevel(self.playBackFrame)
-			overlay.geometry("100x200+50+50")
-		
+			overlay.configure(bg="white")
+			overlay.grab_set()
+			overlay.overrideredirect(True)
+
+			overlayWidth = 400
+
+			buttonX = self.searchButton.winfo_rootx() - int(overlayWidth / 2) + int(self.searchButton.winfo_width()/2)
+			buttonY = self.searchButton.winfo_rooty() + self.searchButton.winfo_height() + 5
+
+			overlay.geometry(f"{overlayWidth}x400+{buttonX}+{buttonY}")
+
+			closeButton = Button(overlay, text='X', command=overlay.destroy)
+			closeButton.pack()
+			searchQuery = self.searchBar.get()
+			results = self.searchSong(searchQuery)
+			searchCanvas = Canvas(overlay, bd=0, highlightthickness=0, width= 38, bg ="white") 
+			searchCanvas.pack(side=LEFT, fill=BOTH, expand=True)
+			canvasWidget = Frame(searchCanvas)
+			searchCanvas.create_window((0,0), window=canvasWidget, anchor='nw')
+
+			canvasWidget.bind("<Configure>", lambda e: searchCanvas.configure(scrollregion=searchCanvas.bbox("all")))
+
+			# print(results)
+			if len(canvasWidget.winfo_children()) == 0:
+					for track in results:
+						sw = songWidget(self, canvasWidget, track, self.defaultImage)
+						sw.pack(expand=True, fill=X,side=TOP,pady=2)
+
+			scrollbar = Scrollbar(overlay, orient="vertical", command=searchCanvas.yview)
+			searchCanvas.configure(yscrollcommand=scrollbar.set)
+			scrollbar.pack(side=RIGHT, fill=Y)
+
+
 		self.buttonBar = Frame(self.playBackFrame)
 		self.buttonBar.pack(pady=15)
 		
@@ -284,6 +317,8 @@ class piplayerGUI:
 	def next(self):
 		self.player.play_next()
 
+	def searchSong(self, query):
+		return self.player.search(query)
 		
 	def set_volume(self, volume):
 		level = self.volumeSlider.get()

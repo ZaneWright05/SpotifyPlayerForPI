@@ -20,12 +20,35 @@ class piplayerCore:
 						scope=self.SCOPE)
 		
 		tokenInfo = self.sp_oauth.get_cached_token()
-		if not tokenInfo:
-			tokenInfo = self.sp_oauth.get_access_token()
-		self.accessToken = tokenInfo['access_token']
-		self.refreshToken = tokenInfo['refresh_token']
-		self.expiryTime = tokenInfo['expires_at']	
+		# if not tokenInfo:
+		# 	tokenInfo = self.sp_oauth.get_access_token()
+		# self.accessToken = tokenInfo['access_token']
+		# self.refreshToken = tokenInfo['refresh_token']
+		# self.expiryTime = tokenInfo['expires_at']	
+
+
+
+		if tokenInfo:
+			if self.sp_oauth.is_token_expired(tokenInfo):
+				print("Token expired, refreshing token...")
+				tokenInfo = self.sp_oauth.refresh_access_token(tokenInfo['refresh_token'])
+		else:
+    		# No cached token, request new authorization
+			print("No cached token found, please authorize.")
+			auth_url = self.sp_oauth.get_authorize_url()
+			print(f"Please navigate to this URL to authorize: {auth_url}")
+			
+			# Manually input the URL you are redirected to after authorization
+			response_url = input("Paste the URL you were redirected to here: ")
+			
+			# Get the authorization code from the URL
+			code = self.sp_oauth.parse_response_code(response_url)
+			
+			# Get new access token
+			tokenInfo = self.sp_oauth.get_access_token(code)
 		
+		self.accessToken = tokenInfo['access_token']
+
 		# variable for access to spotipy functions
 		self.sp = spotipy.Spotify(auth=self.accessToken)
 		
@@ -109,6 +132,14 @@ class piplayerCore:
 		else:	
 			print("No device found")
 	
+	def search(self, query, deviceName = "piplayer"):
+		deviceId = self.get_device_id(deviceName)
+		if deviceId:
+			results = self.sp.search(q=query, limit = 50, type = 'track')['tracks']['items']
+			return results
+		else:	
+			print("No device found")
+			
 	def refresh_access(self): # called to refresh the token
 		if time.time() > self.expiryTime - 60:
 			print("attempting refresh")
@@ -132,7 +163,7 @@ class piplayerCore:
 			print("No device found")
 	
 	def get_current_state(self, deviceName = "piplayer"):
-		self.refresh_access()
+		# self.refresh_access()
 		deviceId = self.get_device_id(deviceName)
 		if deviceId:
 			currentSong = self.sp.current_playback()
