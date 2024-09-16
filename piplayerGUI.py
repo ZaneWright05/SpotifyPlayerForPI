@@ -62,54 +62,56 @@ class piplayerGUI:
 		
 		scriptDir = os.path.dirname(__file__)
 		
-		playPath = os.path.join(scriptDir, 'resources', 'play.png')
-		self.playImage = Image.open(playPath).resize((50, 50), Image.Resampling.LANCZOS)
-		self.playPhoto = ImageTk.PhotoImage(self.playImage)
-		
-		pausePath = os.path.join(scriptDir, 'resources', 'pause.png')
-		self.pauseImage = Image.open(pausePath).resize((50, 50), Image.Resampling.LANCZOS)
-		self.pausePhoto = ImageTk.PhotoImage(self.pauseImage)
-		
-		stopPath = os.path.join(scriptDir, 'resources', 'stop.png')
-		self.stopImage = Image.open(stopPath).resize((50, 50), Image.Resampling.LANCZOS)
-		self.stopPhoto = ImageTk.PhotoImage(self.stopImage)
-		
-		previousPath = os.path.join(scriptDir, 'resources', 'previous.png')
-		self.previousImage = Image.open(previousPath).resize((50, 50), Image.Resampling.LANCZOS)
-		self.previousPhoto = ImageTk.PhotoImage(self.previousImage)
-		
-		nextPath = os.path.join(scriptDir, 'resources', 'next.png')
-		self.nextImage = Image.open(nextPath).resize((50, 50), Image.Resampling.LANCZOS)
-		self.nextPhoto = ImageTk.PhotoImage(self.nextImage)
-		
-		defaultPath = os.path.join(scriptDir, 'resources', 'defaultThumbnail.png')
-		self.defaultImage = Image.open(defaultPath).resize((150, 150), Image.Resampling.LANCZOS)
-		self.defaultPhoto = ImageTk.PhotoImage(self.defaultImage)
-		
-		self.defaultImageSmall = Image.open(defaultPath).resize((100, 100), Image.Resampling.LANCZOS)
-		self.defaultPhotoSmall = ImageTk.PhotoImage(self.defaultImageSmall)
-		
-		self.imageDir = os.path.join(scriptDir, 'imageDir') # path to directory that stores the images
-		if not os.path.exists(self.imageDir):
-			os.makedirs(self.imageDir)
-				
-		self.create_widgets()
-		self.updateInterval = 500
-		self.volChange = BooleanVar(value=False)
-		
-		self.queueChange = BooleanVar(value=True)
-		
-		self.reply = None # used to store song info - reduce calls
-		
-		self.currentImgURL = None # used	
-		self.nextImgURL = None
-		self.currentQueue = None # var to hold current queue
-		
-		# ~ self.songWidgets = {}
-		
-		# ~ self.root.bind("<<SongClicked>>", self.queue_song_clicked)
-		
-		self.request_status()
+		if self.root is not None:
+
+			playPath = os.path.join(scriptDir, 'resources', 'play.png')
+			self.playImage = Image.open(playPath).resize((50, 50), Image.Resampling.LANCZOS)
+			self.playPhoto = ImageTk.PhotoImage(self.playImage)
+			
+			pausePath = os.path.join(scriptDir, 'resources', 'pause.png')
+			self.pauseImage = Image.open(pausePath).resize((50, 50), Image.Resampling.LANCZOS)
+			self.pausePhoto = ImageTk.PhotoImage(self.pauseImage)
+			
+			stopPath = os.path.join(scriptDir, 'resources', 'stop.png')
+			self.stopImage = Image.open(stopPath).resize((50, 50), Image.Resampling.LANCZOS)
+			self.stopPhoto = ImageTk.PhotoImage(self.stopImage)
+			
+			previousPath = os.path.join(scriptDir, 'resources', 'previous.png')
+			self.previousImage = Image.open(previousPath).resize((50, 50), Image.Resampling.LANCZOS)
+			self.previousPhoto = ImageTk.PhotoImage(self.previousImage)
+			
+			nextPath = os.path.join(scriptDir, 'resources', 'next.png')
+			self.nextImage = Image.open(nextPath).resize((50, 50), Image.Resampling.LANCZOS)
+			self.nextPhoto = ImageTk.PhotoImage(self.nextImage)
+			
+			defaultPath = os.path.join(scriptDir, 'resources', 'defaultThumbnail.png')
+			self.defaultImage = Image.open(defaultPath).resize((150, 150), Image.Resampling.LANCZOS)
+			self.defaultPhoto = ImageTk.PhotoImage(self.defaultImage)
+			
+			self.defaultImageSmall = Image.open(defaultPath).resize((100, 100), Image.Resampling.LANCZOS)
+			self.defaultPhotoSmall = ImageTk.PhotoImage(self.defaultImageSmall)
+			
+			self.imageDir = os.path.join(scriptDir, 'imageDir') # path to directory that stores the images
+			if not os.path.exists(self.imageDir):
+				os.makedirs(self.imageDir)
+					
+			self.create_widgets()
+			self.updateInterval = 500
+			self.volChange = BooleanVar(value=False)
+			
+			self.queueChange = BooleanVar(value=True)
+			
+			self.reply = None # used to store song info - reduce calls
+			
+			self.currentImgURL = None # used	
+			self.nextImgURL = None
+			self.currentQueue = None # var to hold current queue
+			
+			# ~ self.songWidgets = {}
+			
+			# ~ self.root.bind("<<SongClicked>>", self.queue_song_clicked)
+			
+			self.request_status()
 	
 	
 	# used for faster img loading - will be properly used later
