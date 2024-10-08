@@ -135,7 +135,7 @@ class piplayerCore:
 	def search(self, query, deviceName = "piplayer"):
 		deviceId = self.get_device_id(deviceName)
 		if deviceId:
-			results = self.sp.search(q=query, limit = 50, type = 'track')['tracks']['items']
+			results = self.sp.search(q=query, limit = 20, type = 'track')['tracks']['items']
 			return results
 		else:	
 			print("No device found")

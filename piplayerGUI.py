@@ -9,10 +9,11 @@ import requests
 from io import BytesIO
 
 class songWidget(Frame):
-	def __init__(self, playerGUI, root, songInfo, defaultImg):
+	def __init__(self, playerGUI, root, songInfo, defaultImg, type):
 		Frame.__init__(self,root, bd=1, relief=RAISED)
 		self.playerGUI = playerGUI
 		self.songURI = songInfo['uri']
+		self.type = type
 		imageURL = songInfo['album']['images'][0]['url'] if songInfo['album']['images'] else None
 		if imageURL is not None:
 			songImage = self.playerGUI.load_image(imageURL).resize((50, 50), Image.Resampling.LANCZOS)
@@ -51,7 +52,12 @@ class songWidget(Frame):
 		
 	def on_click(self, event):
 		# ~ self.master.queue_song_clicked(self.get_uri())
-		self.get_GUI().queue_song_clicked(self.get_uri())
+		if self.type == "queue" :
+			self.get_GUI().queue_song_clicked(self.get_uri())
+
+		if self.type == "song":
+			self.get_GUI().play_From_URI(self.get_uri())
+		
 			
 class piplayerGUI:
 	def __init__(self,root):
@@ -224,7 +230,7 @@ class piplayerGUI:
 			# print(results)
 			if len(canvasWidget.winfo_children()) == 0:
 					for track in results:
-						sw = songWidget(self, canvasWidget, track, self.defaultImage)
+						sw = songWidget(self, canvasWidget, track, self.defaultImage, "song")
 						sw.pack(expand=True, fill=X,side=TOP,pady=2)
 
 			scrollbar = Scrollbar(overlay, orient="vertical", command=searchCanvas.yview)
@@ -319,6 +325,9 @@ class piplayerGUI:
 
 	def searchSong(self, query):
 		return self.player.search(query)
+	
+	def play_From_URI(self, URI):
+		return self.player.play_track_from_URI(URI)
 		
 	def set_volume(self, volume):
 		level = self.volumeSlider.get()
@@ -406,7 +415,7 @@ class piplayerGUI:
 				# end of widgets will have been reached therefore populate with new queue
 				if len(self.queueWidget.winfo_children()) == 0:
 					for track in queue:
-						sw = songWidget(self, self.queueWidget, track, self.defaultImage)
+						sw = songWidget(self, self.queueWidget, track, self.defaultImage, "queue")
 						sw.pack(expand=True, fill=X,side=TOP,pady=2)
 			
 			else: # a different song has been seleted, queue changed
@@ -414,7 +423,7 @@ class piplayerGUI:
 				for widget in self.queueWidget.winfo_children():
 					widget.destroy()		
 				for track in queue:
-					sw = songWidget(self, self.queueWidget, track, self.defaultImage)
+					sw = songWidget(self, self.queueWidget, track, self.defaultImage, "queue")
 					sw.pack(expand=True, fill=X,side=TOP,pady=1)
 					#sw.bind("<Button-1>", self.queue_song_clicked())
 					
@@ -455,7 +464,7 @@ class piplayerGUI:
 						if self.currentSongWidget is not None:
 							self.currentSongWidget.destroy()
 					
-						self.currentSongWidget = songWidget(self, self.playBackFrame, self.player.get_current_song(), self.defaultImage)
+						self.currentSongWidget = songWidget(self, self.playBackFrame, self.player.get_current_song(), self.defaultImage, "current")
 						self.currentSongWidget.pack()
 						
 						if self.currentImgURL is not None: # there is something at current
