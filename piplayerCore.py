@@ -16,9 +16,39 @@ class piplayerCore:
 		# initialise tokens for the player authorisation and refreshing
 		self.sp_oauth = SpotifyOAuth(client_id=self.CLIENT_ID, 
 						client_secret=self.CLIENT_SECRET,
+
 						redirect_uri=self.REDIRECT_URI,
 						scope=self.SCOPE)
+# 		# Get the authorization URL
+# 		auth_url = self.sp_oauth.get_authorize_url()
+# 		print(f"Please navigate to this URL to authorize the application: {auth_url}")
+
+# # Manually paste the redirect URL with the token you get after authorizing
+# 		response = input("Paste the URL you were redirected to here: ")
+
+# Extract the access token
+		#tokenInfo = self.sp_oauth.get_access_token(response)
+
+		# try:
+		# 	tokenInfo = self.sp_oauth.get_access_token(response)
+		# 	self.access_token = tokenInfo['access_token']
+		# 	print("Access token obtained successfully.")
+		# except spotipy.oauth2.SpotifyOauthError as e:
+		# 	print(f"An error occurred: {e}")
+
+# Create a Spotipy client
 		
+
+		# #tokenInfo = self.sp_oauth.get_cached_token()
+		# if not tokenInfo:
+		# #	tokenInfo = self.sp_oauth.get_access_token()
+		# 	#self.accessToken = tokenInfo['access_token']
+		# 	self.refreshToken = tokenInfo['refresh_token']
+		# 	self.expiryTime = tokenInfo['expires_at']	
+		
+		# # variable for access to spotipy functions
+		# self.sp = spotipy.Spotify(auth=self.accessToken)
+
 		tokenInfo = self.sp_oauth.get_cached_token()
 		# if not tokenInfo:
 		# 	tokenInfo = self.sp_oauth.get_access_token()
@@ -50,6 +80,9 @@ class piplayerCore:
 		self.accessToken = tokenInfo['access_token']
 
 		# variable for access to spotipy functions
+
+		self.accessToken = tokenInfo['access_token']
+
 		self.sp = spotipy.Spotify(auth=self.accessToken)
 		
 		self.autoQueue = False # FLAG for loading auto queue funtionality
@@ -147,7 +180,7 @@ class piplayerCore:
 			self.accessToken = tokenInfo['access_token']
 			self.refreshToken = tokenInfo['refresh_token']
 			self.expiryTime = tokenInfo['expires_at']
-			self.sp = spotipy.Spotify(auth=accessToken)
+			self.sp = spotipy.Spotify(auth=self.accessToken)
 			print("access refreshed")
 	
 	def get_current_song(self, deviceName = "piplayer"):
