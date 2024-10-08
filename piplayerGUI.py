@@ -52,12 +52,13 @@ class songWidget(Frame):
 		
 	def on_click(self, event):
 		# ~ self.master.queue_song_clicked(self.get_uri())
-		if self.type == "queue" :
+		if isinstance(self.type, str) and self.type == "queue" :
 			self.get_GUI().queue_song_clicked(self.get_uri())
 
-		if self.type == "song":
+		if self.type[0] == "song":
 			self.get_GUI().play_From_URI(self.get_uri())
-		
+			self.type[1].destroy()
+			self.type[2].set(False)
 			
 class piplayerGUI:
 	def __init__(self,root):
@@ -197,46 +198,53 @@ class piplayerGUI:
 		
 		
 		self.searchBar = Entry(self.playBackFrame)
+		self.searchBar.bind("<Return>", lambda e: open_Search(self))
 		self.searchBar.pack(pady=5)
-		
+
+		self.searchOpen = BooleanVar()
+		self.searchOpen.set(False)
 		self.searchButton = Button(self.playBackFrame, text="Search", command=lambda: open_Search(self))
 		self.searchButton.pack()
 		
 
 		def open_Search(self):
-			overlay = Toplevel(self.playBackFrame)
-			overlay.configure(bg="white")
-			overlay.grab_set()
-			overlay.overrideredirect(True)
+			if not self.searchOpen.get():
+				searchQuery = self.searchBar.get()
+				if searchQuery.strip():
+					self.searchOpen.set(True)
+					overlay = Toplevel(self.playBackFrame)
+					overlay.configure(bg="seashell4")
+					overlay.grab_set()
+					overlay.overrideredirect(True)
 
-			overlayWidth = 400
+					overlayWidth = 240
 
-			buttonX = self.searchButton.winfo_rootx() - int(overlayWidth / 2) + int(self.searchButton.winfo_width()/2)
-			buttonY = self.searchButton.winfo_rooty() + self.searchButton.winfo_height() + 5
+					buttonX = self.searchButton.winfo_rootx() - int(overlayWidth / 2) + int(self.searchButton.winfo_width()/2)
+					buttonY = self.searchButton.winfo_rooty() + self.searchButton.winfo_height() + 5
 
-			overlay.geometry(f"{overlayWidth}x400+{buttonX}+{buttonY}")
+					overlay.geometry(f"{overlayWidth}x650+{buttonX}+{buttonY}")
 
-			closeButton = Button(overlay, text='X', command=overlay.destroy)
-			closeButton.pack()
-			searchQuery = self.searchBar.get()
-			results = self.searchSong(searchQuery)
-			searchCanvas = Canvas(overlay, bd=0, highlightthickness=0, width= 38, bg ="white") 
-			searchCanvas.pack(side=LEFT, fill=BOTH, expand=True)
-			canvasWidget = Frame(searchCanvas)
-			searchCanvas.create_window((0,0), window=canvasWidget, anchor='nw')
+					closeButton = Button(overlay, text='X', command=lambda: [overlay.destroy(), self.searchOpen.set(False)])
+					closeButton.pack()
+					
+					results = self.searchSong(searchQuery)
+					searchCanvas = Canvas(overlay, bd=0, highlightthickness=0, width= 30, bg ="seashell4")
+					searchCanvas.pack(side=LEFT, fill=BOTH, expand=True)
+					canvasWidget = Frame(searchCanvas)
+					searchCanvas.create_window((0,0), window=canvasWidget, anchor='nw')
 
-			canvasWidget.bind("<Configure>", lambda e: searchCanvas.configure(scrollregion=searchCanvas.bbox("all")))
+					canvasWidget.bind("<Configure>", lambda e: searchCanvas.configure(scrollregion=searchCanvas.bbox("all")))
 
-			# print(results)
-			if len(canvasWidget.winfo_children()) == 0:
-					for track in results:
-						sw = songWidget(self, canvasWidget, track, self.defaultImage, "song")
-						sw.bind("<ButtonRelease-1>", lambda e: overlay.destroy()) # destroy the overlay after song pressed 
-						sw.pack(expand=True, fill=X,side=TOP,pady=2)
+					# print(results)
+					if len(canvasWidget.winfo_children()) == 0:
+							for track in results:
+								sw = songWidget(self, canvasWidget, track, self.defaultImage, ("song", overlay, self.searchOpen))
+								# sw.bind("<ButtonRelease-1>", lambda e: [overlay.destroy(), self.searchOpen.set(False)]) # destroy the overlay after song pressed
+								sw.pack(expand=True, fill=X,side=TOP,pady=2)
 
-			scrollbar = Scrollbar(overlay, orient="vertical", command=searchCanvas.yview)
-			searchCanvas.configure(yscrollcommand=scrollbar.set)
-			scrollbar.pack(side=RIGHT, fill=Y)
+					scrollbar = Scrollbar(overlay, orient="vertical", command=searchCanvas.yview)
+					searchCanvas.configure(yscrollcommand=scrollbar.set)
+					scrollbar.pack(side=RIGHT, fill=Y)
 
 
 		self.buttonBar = Frame(self.playBackFrame)
