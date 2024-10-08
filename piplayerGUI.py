@@ -59,6 +59,7 @@ class songWidget(Frame):
 			self.get_GUI().play_From_URI(self.get_uri())
 			self.type[1].destroy()
 			self.type[2].set(False)
+			self.type[3].delete(0, END)
 			
 class piplayerGUI:
 	def __init__(self,root):
@@ -238,7 +239,7 @@ class piplayerGUI:
 					# print(results)
 					if len(canvasWidget.winfo_children()) == 0:
 							for track in results:
-								sw = songWidget(self, canvasWidget, track, self.defaultImage, ("song", overlay, self.searchOpen))
+								sw = songWidget(self, canvasWidget, track, self.defaultImage, ("song", overlay, self.searchOpen, self.searchBar))
 								# sw.bind("<ButtonRelease-1>", lambda e: [overlay.destroy(), self.searchOpen.set(False)]) # destroy the overlay after song pressed
 								sw.pack(expand=True, fill=X,side=TOP,pady=2)
 
