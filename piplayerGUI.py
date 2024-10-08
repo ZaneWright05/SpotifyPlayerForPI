@@ -231,6 +231,7 @@ class piplayerGUI:
 			if len(canvasWidget.winfo_children()) == 0:
 					for track in results:
 						sw = songWidget(self, canvasWidget, track, self.defaultImage, "song")
+						sw.bind("<ButtonRelease-1>", lambda e: overlay.destroy()) # destroy the overlay after song pressed 
 						sw.pack(expand=True, fill=X,side=TOP,pady=2)
 
 			scrollbar = Scrollbar(overlay, orient="vertical", command=searchCanvas.yview)
